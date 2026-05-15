@@ -15,11 +15,21 @@ def get_db():
     if not os.path.exists(INSTANCE_DIR):
         os.makedirs(INSTANCE_DIR)
         
+    is_new = not os.path.exists(DB_PATH) or os.path.getsize(DB_PATH) == 0
+        
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row  # 讓回傳的 row 可以用欄位名稱存取 (例如 row['id'])
     
     # 開啟 SQLite 的 Foreign Key 支援
     conn.execute('PRAGMA foreign_keys = ON')
+    
+    # 如果資料庫是新建立的（或被清空），自動執行 schema.sql 建立資料表
+    if is_new:
+        schema_path = os.path.join(BASE_DIR, 'database', 'schema.sql')
+        if os.path.exists(schema_path):
+            with open(schema_path, 'r', encoding='utf-8') as f:
+                conn.executescript(f.read())
+            conn.commit()
     
     return conn
 
