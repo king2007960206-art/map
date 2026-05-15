@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2 class="fw-bold text-dark">即時設備狀態</h2>
+        <p class="text-muted">點擊按鈕來回報你目前在現場看到的真實狀況，幫助其他同學避開人潮或故障設備！</p>
+    </div>
+</div>
+
+<!-- 分類篩選按鈕 -->
+<div class="row mb-4">
+    <div class="col">
+        <div class="btn-group shadow-sm" role="group" aria-label="設備分類過濾">
+            <a href="{{ url_for('main.index') }}" class="btn btn-outline-primary {% if not current_category %}active{% endif %}">全部</a>
+            <a href="{{ url_for('main.index', category='printer') }}" class="btn btn-outline-primary {% if current_category == 'printer' %}active{% endif %}">列印機</a>
+            <a href="{{ url_for('main.index', category='water_dispenser') }}" class="btn btn-outline-primary {% if current_category == 'water_dispenser' %}active{% endif %}">飲水機</a>
+            <a href="{{ url_for('main.index', category='computer') }}" class="btn btn-outline-primary {% if current_category == 'computer' %}active{% endif %}">公用電腦</a>
+        </div>
+    </div>
+</div>
+
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 mb-5">
+    {% for eq in equipments %}
+    <div class="col">
+        <div class="card h-100 shadow-sm border-0 rounded-3">
+            <div class="card-header bg-white border-bottom-0 d-flex justify-content-between align-items-center pt-3 pb-0">
+                <span class="badge bg-secondary">{{ eq.category }}</span>
+                {% if eq.current_status == 'available' %}
+                    <span class="badge bg-success status-badge px-2 py-1" id="badge-{{ eq.id }}">🟢 可用</span>
+                {% elif eq.current_status == 'queuing' %}
+                    <span class="badge bg-warning text-dark status-badge px-2 py-1" id="badge-{{ eq.id }}">🟡 排隊中</span>
+                {% else %}
+                    <span class="badge bg-danger status-badge px-2 py-1" id="badge-{{ eq.id }}">🔴 維修中</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <h5 class="card-title fw-bold text-dark mt-2">{{ eq.name }}</h5>
+                <h6 class="card-subtitle mb-2 text-muted mt-2"><i class="bi bi-geo-alt"></i> {{ eq.location or '未知地點' }}</h6>
+                <p class="card-text small text-muted mt-3 mb-0">最後更新時間: <br><span id="time-{{ eq.id }}" class="fw-medium">{{ eq.last_reported_at or '尚無回報紀錄' }}</span></p>
+            </div>
+            <div class="card-footer bg-light border-top-0 pb-3">
+                <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                    <button class="btn btn-sm btn-outline-success report-btn fw-bold w-100" data-id="{{ eq.id }}" data-status="available">可用</button>
+                    <button class="btn btn-sm btn-outline-warning text-dark report-btn fw-bold w-100" data-id="{{ eq.id }}" data-status="queuing">排隊</button>
+                    <button class="btn btn-sm btn-outline-danger report-btn fw-bold w-100" data-id="{{ eq.id }}" data-status="maintenance">維修</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="alert alert-info shadow-sm" role="alert">
+            <i class="bi bi-info-circle-fill me-2"></i> 目前此分類下尚未有建檔的設備。
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const reportBtns = document.querySelectorAll('.report-btn');
+    
+    reportBtns.forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const eqId = this.getAttribute('data-id');
+            const status = this.getAttribute('data-status');
+            
+            // 停用該卡片內的所有按鈕防止重複點擊
+            const cardFooter = this.closest('.card-footer');
+            const buttonsInCard = cardFooter.querySelectorAll('button');
+            buttonsInCard.forEach(b => {
+                b.disabled = true;
+                b.classList.add('opacity-50');
+            });
+            
+            // 加入簡單的 Loading 視覺回饋
+            const originalText = this.innerText;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+            
+            try {
+                const response = await fetch(`/api/equipment/${eqId}/status`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status: status })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 更新 UI badge 的顏色與文字
+                    const badge = document.getElementById(`badge-${eqId}`);
+                    if (status === 'available') {
+                        badge.className = 'badge bg-success status-badge px-2 py-1';
+                        badge.innerHTML = '🟢 可用';
+                    } else if (status === 'queuing') {
+                        badge.className = 'badge bg-warning text-dark status-badge px-2 py-1';
+                        badge.innerHTML = '🟡 排隊中';
+                    } else if (status === 'maintenance') {
+                        badge.className = 'badge bg-danger status-badge px-2 py-1';
+                        badge.innerHTML = '🔴 維修中';
+                    }
+                    
+                    // 更新畫面上顯示的最新時間
+                    const timeSpan = document.getElementById(`time-${eqId}`);
+                    // 為了簡化，直接將前端時間格式化為 SQLite DATETIME 的相近格式
+                    const now = new Date();
+                    timeSpan.innerText = now.toISOString().slice(0, 19).replace('T', ' ') + ' (剛剛)';
+                    
+                } else {
+                    alert('狀態更新失敗: ' + (data.error || '未知的錯誤'));
+                }
+            } catch (error) {
+                console.error('Fetch Error:', error);
+                alert('網路錯誤，請稍後再試！');
+            } finally {
+                // 恢復按鈕狀態與文字
+                this.innerText = originalText;
+                buttonsInCard.forEach(b => {
+                    b.disabled = false;
+                    b.classList.remove('opacity-50');
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
