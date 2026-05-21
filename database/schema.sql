@@ -1,3 +1,18 @@
+CREATE TABLE IF NOT EXISTS locations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    latitude REAL,
+    longitude REAL
+);
+
+CREATE TABLE IF NOT EXISTS reports (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    location_id INTEGER NOT NULL,
+    tag TEXT NOT NULL,
+    user_session TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (location_id) REFERENCES locations (id) ON DELETE CASCADE
+);
 -- database/schema.sql
 
 -- 開啟 Foreign Key 支援 (SQLite 預設是關閉的，視需要在連線時開啟，但在這裡也確保關聯定義正確)
