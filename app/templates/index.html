@@ -66,6 +66,69 @@
             </div>
         </div>
     </div>
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="mb-5">
+    <h2>即時設備狀態</h2>
+    <p class="text-muted">點擊按鈕來回報你目前在現場看到的真實狀況，幫助其他同學避開人潮或故障設備！</p>
+</div>
+
+<!-- 分類過濾器 -->
+<div class="btn-filter-group mb-4">
+    <a href="{{ url_for('main.index') }}" class="btn-filter {% if not current_category %}active{% endif %}">全部</a>
+    <a href="{{ url_for('main.index', category='printer') }}" class="btn-filter {% if current_category == 'printer' %}active{% endif %}">印表機</a>
+    <a href="{{ url_for('main.index', category='water_dispenser') }}" class="btn-filter {% if current_category == 'water_dispenser' %}active{% endif %}">飲水機</a>
+    <a href="{{ url_for('main.index', category='computer') }}" class="btn-filter {% if current_category == 'computer' %}active{% endif %}">公用電腦</a>
+</div>
+
+<!-- 設備卡片列表 -->
+<div class="row g-4">
+    {% for eq in equipments %}
+    <div class="col-md-6 col-lg-4">
+        <div class="card-custom h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="badge-category">{{ eq.category }}</span>
+                <span class="badge-status 
+                    {% if eq.current_status == 'available' %}badge-available
+                    {% elif eq.current_status == 'queuing' %}badge-queuing
+                    {% else %}badge-maintenance{% endif %}" 
+                    id="badge-{{ eq.id }}">
+                    
+                    {% if eq.current_status == 'available' %}
+                        <i class="bi bi-check-circle-fill"></i> 可用
+                    {% elif eq.current_status == 'queuing' %}
+                        <i class="bi bi-people-fill"></i> 排隊
+                    {% else %}
+                        <i class="bi bi-exclamation-triangle-fill"></i> 維修
+                    {% endif %}
+                </span>
+            </div>
+            <div class="card-body">
+                <h4 class="card-title fw-bold mb-3">{{ eq.name }}</h4>
+                <p class="card-text text-muted mb-4">
+                    <i class="bi bi-geo-alt"></i> {{ eq.location }}
+                </p>
+                <div class="small text-muted">
+                    最後更新時間:<br>
+                    <span id="time-{{ eq.id }}" class="fw-medium text-dark">
+                        {{ eq.last_reported_at if eq.last_reported_at else '尚無回報紀錄' }}
+                    </span>
+                </div>
+            </div>
+            <div class="card-footer d-flex gap-2">
+                <button class="btn btn-report btn-report-available flex-grow-1" onclick="reportStatus({{ eq.id }}, 'available')">可用</button>
+                <button class="btn btn-report btn-report-queuing flex-grow-1" onclick="reportStatus({{ eq.id }}, 'queuing')">排隊</button>
+                <button class="btn btn-report btn-report-maintenance flex-grow-1" onclick="reportStatus({{ eq.id }}, 'maintenance')">維修</button>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12 text-center py-5">
+        <i class="bi bi-inbox fs-1 text-muted"></i>
+        <p class="mt-3 text-muted">目前沒有符合條件的設備資料。</p>
+    </div>
+    {% endfor %}
 </div>
 {% endblock %}
 
@@ -114,5 +177,62 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+    function reportStatus(equipmentId, status) {
+        fetch(`/api/equipment/${equipmentId}/status`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status: status })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // 更新狀態 Badge
+                const badge = document.getElementById(`badge-${equipmentId}`);
+                
+                // 重置所有相關的 class
+                badge.className = 'badge-status';
+                let iconHtml = '';
+                let textHtml = '';
+
+                if (status === 'available') {
+                    badge.classList.add('badge-available');
+                    iconHtml = '<i class="bi bi-check-circle-fill"></i>';
+                    textHtml = ' 可用';
+                } else if (status === 'queuing') {
+                    badge.classList.add('badge-queuing');
+                    iconHtml = '<i class="bi bi-people-fill"></i>';
+                    textHtml = ' 排隊';
+                } else {
+                    badge.classList.add('badge-maintenance');
+                    iconHtml = '<i class="bi bi-exclamation-triangle-fill"></i>';
+                    textHtml = ' 維修';
+                }
+                
+                badge.innerHTML = iconHtml + textHtml;
+                
+                // 觸發閃爍動畫
+                badge.classList.remove('animate-pulse');
+                void badge.offsetWidth; // 強制重繪以重新觸發動畫
+                badge.classList.add('animate-pulse');
+
+                // 更新最後更新時間
+                const timeSpan = document.getElementById(`time-${equipmentId}`);
+                const now = new Date();
+                timeSpan.innerText = now.toLocaleString('sv-SE') + " (剛剛)";
+                
+                // 動畫效果：時間文字也閃一下
+                timeSpan.style.color = 'var(--primary-color)';
+                setTimeout(() => { timeSpan.style.color = ''; }, 1000);
+            } else {
+                alert('狀態更新失敗: ' + (data.error || '未知的錯誤'));
+            }
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            alert('網路錯誤，請稍後再試。');
+        });
+    }
 </script>
 {% endblock %}

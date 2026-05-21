@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="mb-5">
+    <h2>系統統計</h2>
+    <p class="text-muted">檢視目前全校設備的回報狀態總計資料。</p>
+</div>
+
+<div class="row">
+    <div class="col-12 col-lg-10 col-xl-8 mx-auto">
+        <div class="table-container">
+            <table class="table table-borderless table-custom table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th scope="col">設備名稱</th>
+                        <th scope="col">種類</th>
+                        <th scope="col">狀態</th>
+                        <th scope="col" class="text-end">回報次數</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in stats %}
+                    <tr>
+                        <td class="fw-bold">{{ row.name }}</td>
+                        <td>
+                            <span class="badge-category" style="font-size: 0.75rem;">{{ row.category }}</span>
+                        </td>
+                        <td>
+                            <span class="badge-status 
+                                {% if row.status == 'available' %}badge-available
+                                {% elif row.status == 'queuing' %}badge-queuing
+                                {% else %}badge-maintenance{% endif %}">
+                                {% if row.status == 'available' %}
+                                    <i class="bi bi-check-circle-fill"></i> 可用
+                                {% elif row.status == 'queuing' %}
+                                    <i class="bi bi-people-fill"></i> 排隊
+                                {% else %}
+                                    <i class="bi bi-exclamation-triangle-fill"></i> 維修
+                                {% endif %}
+                            </span>
+                        </td>
+                        <td class="text-end fw-bold text-primary fs-5">
+                            {{ row.count }}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-2 mb-3 d-block"></i>
+                            目前沒有任何統計資料。
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
