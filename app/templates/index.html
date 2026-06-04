@@ -1,238 +1,177 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="row">
-    <!-- 左側：三秒極簡回報 -->
-    <div class="col-md-5 mb-4">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-success text-white">
-                <h5 class="card-title mb-0">⚡ 三秒極簡回報</h5>
+<!-- Top Row: Active AI prediction alerts and Real-time weather -->
+<div class="row mb-4">
+    <!-- Active Alerts Ticker -->
+    <div class="col-lg-8 col-md-7 mb-3 mb-md-0">
+        <div class="card-custom h-100 p-3 bg-opacity-75">
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <span class="badge bg-danger animate-pulse border border-danger">AI Proactive Notification</span>
+                <h6 class="m-0 text-white fw-bold"><i class="bi bi-bell-fill text-warning me-1"></i> AI 避堵與熱區提示</h6>
             </div>
-            <div class="card-body">
-                <p class="text-muted small mb-3">請選擇您目前所在的地點，並點擊符合感受的標籤，幫助其他同學了解即時狀況！</p>
-                
-                <form id="report-form">
-                    <div class="mb-3">
-                        <label for="locationSelect" class="form-label fw-bold">選擇地點</label>
-                        <select class="form-select" id="locationSelect" required>
-                            <option value="" selected disabled>請選擇...</option>
-                            {% for loc in locations %}
-                            <option value="{{ loc.id }}">{{ loc.name }}</option>
-                            {% endfor %}
-                        </select>
-                        <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="btn-auto-locate">
-                            📍 自動定位 (測試中)
-                        </button>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-bold d-block">點擊體感標籤</label>
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-start flex-wrap">
-                            <button type="button" class="btn btn-outline-primary tag-btn mb-2" data-tag="超冷">🥶 超冷</button>
-                            <button type="button" class="btn btn-outline-danger tag-btn mb-2" data-tag="悶熱">🥵 悶熱</button>
-                            <button type="button" class="btn btn-outline-warning tag-btn mb-2" data-tag="爆滿">🈵 爆滿</button>
-                            <button type="button" class="btn btn-outline-success tag-btn mb-2" data-tag="空曠">🈳 空曠</button>
+            <div id="alerts-container" class="alert-ticker text-light">
+                {% if active_alerts %}
+                    {% for alert in active_alerts %}
+                        <div class="alert-item py-1">
+                            <span class="badge bg-info-subtle text-info me-1">{{ alert.location_name }}</span>
+                            {{ alert.message }}
                         </div>
-                    </div>
-                </form>
-                
-                <div id="report-message" class="mt-3"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 右側：各地點狀態列表 -->
-    <div class="col-md-7">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-info text-white">
-                <h5 class="card-title mb-0">🗺️ 即時校園動態</h5>
-            </div>
-            <div class="card-body p-0">
-                <ul class="list-group list-group-flush" id="status-list">
-                    {% for loc in locations %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <span class="fw-bold">{{ loc.name }}</span>
-                        {% if loc.latest_tag %}
-                        <div>
-                            <span class="badge bg-secondary rounded-pill fs-6">{{ loc.latest_tag }}</span>
-                            <small class="text-muted ms-2">{{ loc.latest_time }}</small>
-                        </div>
-                        {% else %}
-                        <span class="text-muted small">尚無回報</span>
-                        {% endif %}
-                    </li>
                     {% endfor %}
-                </ul>
+                {% else %}
+                    <div class="text-muted small py-1"><i class="bi bi-check-circle-fill text-success me-1"></i> 目前校園人潮分佈均勻，各場館均有充足自習空間。</div>
+                {% endif %}
             </div>
         </div>
     </div>
-{% extends 'base.html' %}
-
-{% block content %}
-<div class="mb-5">
-    <h2>即時設備狀態</h2>
-    <p class="text-muted">點擊按鈕來回報你目前在現場看到的真實狀況，幫助其他同學避開人潮或故障設備！</p>
-</div>
-
-<!-- 分類過濾器 -->
-<div class="btn-filter-group mb-4">
-    <a href="{{ url_for('main.index') }}" class="btn-filter {% if not current_category %}active{% endif %}">全部</a>
-    <a href="{{ url_for('main.index', category='printer') }}" class="btn-filter {% if current_category == 'printer' %}active{% endif %}">印表機</a>
-    <a href="{{ url_for('main.index', category='water_dispenser') }}" class="btn-filter {% if current_category == 'water_dispenser' %}active{% endif %}">飲水機</a>
-    <a href="{{ url_for('main.index', category='computer') }}" class="btn-filter {% if current_category == 'computer' %}active{% endif %}">公用電腦</a>
-</div>
-
-<!-- 設備卡片列表 -->
-<div class="row g-4">
-    {% for eq in equipments %}
-    <div class="col-md-6 col-lg-4">
-        <div class="card-custom h-100">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span class="badge-category">{{ eq.category }}</span>
-                <span class="badge-status 
-                    {% if eq.current_status == 'available' %}badge-available
-                    {% elif eq.current_status == 'queuing' %}badge-queuing
-                    {% else %}badge-maintenance{% endif %}" 
-                    id="badge-{{ eq.id }}">
-                    
-                    {% if eq.current_status == 'available' %}
-                        <i class="bi bi-check-circle-fill"></i> 可用
-                    {% elif eq.current_status == 'queuing' %}
-                        <i class="bi bi-people-fill"></i> 排隊
-                    {% else %}
-                        <i class="bi bi-exclamation-triangle-fill"></i> 維修
-                    {% endif %}
-                </span>
+    
+    <!-- Real-time Weather Card -->
+    <div class="col-lg-4 col-md-5">
+        <div class="card-custom h-100 p-3 text-white weather-card bg-opacity-75">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="badge bg-success-subtle text-success border border-success-subtle">實時天氣</span>
+                <span class="text-muted small"><i class="bi bi-geo-alt"></i> 臺中市西屯區</span>
             </div>
-            <div class="card-body">
-                <h4 class="card-title fw-bold mb-3">{{ eq.name }}</h4>
-                <p class="card-text text-muted mb-4">
-                    <i class="bi bi-geo-alt"></i> {{ eq.location }}
-                </p>
-                <div class="small text-muted">
-                    最後更新時間:<br>
-                    <span id="time-{{ eq.id }}" class="fw-medium text-dark">
-                        {{ eq.last_reported_at if eq.last_reported_at else '尚無回報紀錄' }}
-                    </span>
+            <div class="d-flex align-items-center gap-3">
+                <div id="weather-icon-container" class="fs-1 text-info">
+                    <i class="bi bi-cloud-sun-fill animate-float"></i>
+                </div>
+                <div>
+                    <h3 id="weather-temp" class="mb-0 fw-extrabold text-info">--°C</h3>
+                    <p id="weather-desc" class="mb-0 text-light small">讀取天氣中...</p>
+                    <span id="weather-humidity" class="text-muted small">濕度: --%</span>
                 </div>
             </div>
-            <div class="card-footer d-flex gap-2">
-                <button class="btn btn-report btn-report-available flex-grow-1" onclick="reportStatus({{ eq.id }}, 'available')">可用</button>
-                <button class="btn btn-report btn-report-queuing flex-grow-1" onclick="reportStatus({{ eq.id }}, 'queuing')">排隊</button>
-                <button class="btn btn-report btn-report-maintenance flex-grow-1" onclick="reportStatus({{ eq.id }}, 'maintenance')">維修</button>
+        </div>
+    </div>
+</div>
+
+<!-- Main Body Row -->
+<div class="row">
+    <!-- Left: Leaflet Map Panel -->
+    <div class="col-xl-7 col-lg-6 mb-4">
+        <div class="card-custom h-100 overflow-hidden">
+            <div class="card-header bg-dark bg-opacity-50 d-flex justify-content-between align-items-center py-3">
+                <h5 class="m-0 text-white fw-bold"><i class="bi bi-map-fill text-info me-2"></i>逢甲大學 2D 熱區地圖</h5>
+                <div class="d-flex gap-2">
+                    <span class="badge bg-success rounded-pill px-2 py-1 fs-9">空曠 &lt;40%</span>
+                    <span class="badge bg-warning text-dark rounded-pill px-2 py-1 fs-9">適中 40-70%</span>
+                    <span class="badge bg-danger rounded-pill px-2 py-1 fs-9">擁擠 &gt;70%</span>
+                </div>
+            </div>
+            <div class="card-body p-0 relative">
+                <!-- Map Container -->
+                <div id="map" class="map-container" style="height: 550px; width: 100%;"></div>
             </div>
         </div>
     </div>
-    {% else %}
-    <div class="col-12 text-center py-5">
-        <i class="bi bi-inbox fs-1 text-muted"></i>
-        <p class="mt-3 text-muted">目前沒有符合條件的設備資料。</p>
+
+    <!-- Right: Prediction Detail & Reporting Panel -->
+    <div class="col-xl-5 col-lg-6 mb-4">
+        <div class="card-custom p-4 d-flex flex-column justify-content-between h-100">
+            <!-- Header & Geolocation Status -->
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h4 class="fw-bold text-white mb-0" id="selected-loc-name">請選擇地點</h4>
+                    <button id="btn-simulate-gps" class="btn btn-sm btn-outline-info rounded-pill px-3">
+                        <i class="bi bi-geo-fill me-1"></i>模擬校園定位
+                    </button>
+                </div>
+                <div id="geo-status" class="text-muted small">
+                    <i class="bi bi-circle-fill text-warning me-1 animate-pulse-slow"></i> 正在偵測您的 IP 與地理位置...
+                </div>
+            </div>
+
+            <!-- Crowd and Temp Stats meters -->
+            <div class="row g-3 mb-4">
+                <!-- Crowd Gauge -->
+                <div class="col-6">
+                    <div class="stat-card p-3 rounded-4 bg-dark bg-opacity-40 border border-secondary border-opacity-10">
+                        <span class="text-muted small d-block mb-1">當前預估人潮</span>
+                        <div class="d-flex align-items-baseline gap-1">
+                            <span class="fs-2 fw-extrabold text-info" id="stat-crowd-num">--</span>
+                            <span class="text-muted font-monospace">%</span>
+                        </div>
+                        <div class="progress mt-2" style="height: 6px;">
+                            <div id="stat-crowd-bar" class="progress-bar bg-info" role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <span class="badge bg-opacity-25 mt-2 d-inline-block fs-8 text-info bg-info" id="stat-crowd-lbl">計算中</span>
+                    </div>
+                </div>
+                <!-- Temp Gauge -->
+                <div class="col-6">
+                    <div class="stat-card p-3 rounded-4 bg-dark bg-opacity-40 border border-secondary border-opacity-10">
+                        <span class="text-muted small d-block mb-1">體感室溫</span>
+                        <div class="d-flex align-items-baseline gap-1">
+                            <span class="fs-2 fw-extrabold text-warning" id="stat-temp-num">--</span>
+                            <span class="text-muted font-monospace">°C</span>
+                        </div>
+                        <div class="progress mt-2" style="height: 6px;">
+                            <div id="stat-temp-bar" class="progress-bar bg-warning" role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <span class="badge bg-opacity-25 mt-2 d-inline-block fs-8 text-warning bg-warning" id="stat-temp-lbl">計算中</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Future 1 Hour Chart -->
+            <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="m-0 text-white fw-bold"><i class="bi bi-graph-up-arrow text-info me-1"></i> AI 趨勢預測 (未來一小時)</h6>
+                    <span class="text-muted fs-8 font-monospace">10分鐘區間</span>
+                </div>
+                <div class="chart-container rounded-4 bg-dark bg-opacity-50 p-2 border border-secondary border-opacity-10 relative">
+                    <canvas id="predictionChart" style="height: 200px; width: 100%;"></canvas>
+                </div>
+            </div>
+
+            <!-- Quick Report Form -->
+            <div class="mt-auto">
+                <div class="card bg-dark bg-opacity-50 border border-secondary border-opacity-10 rounded-4 p-3">
+                    <h6 class="text-white fw-bold mb-2"><i class="bi bi-chat-heart-fill text-danger me-1"></i> 三秒即時回饋</h6>
+                    <p class="text-muted small mb-3">協助修正 AI 模型！點擊您在現場的真實體感：</p>
+                    
+                    <form id="report-form">
+                        <input type="hidden" id="report-location-id" value="">
+                        
+                        <!-- Crowd report row -->
+                        <div class="mb-3">
+                            <label class="form-label text-light small fw-bold">1. 現狀人潮排隊情況</label>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-outline-success btn-report-val flex-grow-1" data-field="crowd_level" data-val="low">🈳 空曠</button>
+                                <button type="button" class="btn btn-outline-warning btn-report-val flex-grow-1" data-field="crowd_level" data-val="medium">🚶 適中</button>
+                                <button type="button" class="btn btn-outline-danger btn-report-val flex-grow-1" data-field="crowd_level" data-val="high">🈵 擁擠</button>
+                            </div>
+                        </div>
+
+                        <!-- Temp report row -->
+                        <div class="mb-3">
+                            <label class="form-label text-light small fw-bold">2. 當前現場體感溫度</label>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-outline-info btn-report-val flex-grow-1" data-field="temperature_felt" data-val="cold">🥶 偏冷</button>
+                                <button type="button" class="btn btn-outline-success btn-report-val flex-grow-1" data-field="temperature_felt" data-val="comfort">😊 舒適</button>
+                                <button type="button" class="btn btn-outline-danger btn-report-val flex-grow-1" data-field="temperature_felt" data-val="hot">🥵 悶熱</button>
+                            </div>
+                        </div>
+
+                        <div class="d-grid mt-2">
+                            <button type="submit" class="btn btn-info text-dark fw-bold rounded-3" id="btn-submit-report" disabled>
+                                <i class="bi bi-send-fill me-1"></i> 送出即時回報
+                            </button>
+                        </div>
+                    </form>
+                    <div id="report-result-msg" class="mt-2 text-center small"></div>
+                </div>
+            </div>
+        </div>
     </div>
-    {% endfor %}
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-    const tagBtns = document.querySelectorAll('.tag-btn');
-    const locationSelect = document.getElementById('locationSelect');
-    const msgDiv = document.getElementById('report-message');
-
-    tagBtns.forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            const tag = e.target.getAttribute('data-tag');
-            const location_id = locationSelect.value;
-
-            if (!location_id) {
-                msgDiv.innerHTML = '<div class="alert alert-warning py-2">⚠️ 請先選擇地點！</div>';
-                return;
-            }
-
-            // 發送回報
-            try {
-                const response = await fetch('/api/report', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        location_id: parseInt(location_id),
-                        tag: tag
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                    msgDiv.innerHTML = `<div class="alert alert-success py-2">✅ ${data.message}</div>`;
-                    // 重新整理頁面以獲取最新狀態
-                    setTimeout(() => window.location.reload(), 1500);
-                } else {
-                    msgDiv.innerHTML = `<div class="alert alert-danger py-2">❌ ${data.message}</div>`;
-                }
-            } catch (err) {
-                msgDiv.innerHTML = `<div class="alert alert-danger py-2">❌ 連線失敗，請稍後再試</div>`;
-            }
-        });
-    });
-});
-    function reportStatus(equipmentId, status) {
-        fetch(`/api/equipment/${equipmentId}/status`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ status: status })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // 更新狀態 Badge
-                const badge = document.getElementById(`badge-${equipmentId}`);
-                
-                // 重置所有相關的 class
-                badge.className = 'badge-status';
-                let iconHtml = '';
-                let textHtml = '';
-
-                if (status === 'available') {
-                    badge.classList.add('badge-available');
-                    iconHtml = '<i class="bi bi-check-circle-fill"></i>';
-                    textHtml = ' 可用';
-                } else if (status === 'queuing') {
-                    badge.classList.add('badge-queuing');
-                    iconHtml = '<i class="bi bi-people-fill"></i>';
-                    textHtml = ' 排隊';
-                } else {
-                    badge.classList.add('badge-maintenance');
-                    iconHtml = '<i class="bi bi-exclamation-triangle-fill"></i>';
-                    textHtml = ' 維修';
-                }
-                
-                badge.innerHTML = iconHtml + textHtml;
-                
-                // 觸發閃爍動畫
-                badge.classList.remove('animate-pulse');
-                void badge.offsetWidth; // 強制重繪以重新觸發動畫
-                badge.classList.add('animate-pulse');
-
-                // 更新最後更新時間
-                const timeSpan = document.getElementById(`time-${equipmentId}`);
-                const now = new Date();
-                timeSpan.innerText = now.toLocaleString('sv-SE') + " (剛剛)";
-                
-                // 動畫效果：時間文字也閃一下
-                timeSpan.style.color = 'var(--primary-color)';
-                setTimeout(() => { timeSpan.style.color = ''; }, 1000);
-            } else {
-                alert('狀態更新失敗: ' + (data.error || '未知的錯誤'));
-            }
-        })
-        .catch(err => {
-            console.error('Error:', err);
-            alert('網路錯誤，請稍後再試。');
-        });
-    }
+    // Pass initial Python model variables to JS
+    const locationsData = {{ locations|tojson }};
+    const initialLocationId = locationsData.length > 0 ? locationsData[0].id : null;
 </script>
 {% endblock %}

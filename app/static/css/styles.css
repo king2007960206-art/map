@@ -1,248 +1,315 @@
-/* Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+/* AI Smart Prediction Dashboard Styling */
 
+/* Imports */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap');
+
+/* Variables & Design System */
 :root {
-    --primary-color: #4F46E5; /* Indigo 600 */
-    --primary-hover: #4338CA;
-    --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    --card-bg: rgba(255, 255, 255, 0.95);
-    --text-main: #1F2937;
-    --text-muted: #6B7280;
+    --bg-dark-radial: radial-gradient(circle at top, #1e1b4b 0%, #08071a 100%);
+    --bg-glass: rgba(255, 255, 255, 0.05);
+    --border-glass: rgba(255, 255, 255, 0.08);
+    --border-glass-hover: rgba(255, 255, 255, 0.18);
     
-    /* Status Colors */
-    --status-success: #10B981;
-    --status-success-bg: #D1FAE5;
-    --status-warning: #F59E0B;
-    --status-warning-bg: #FEF3C7;
-    --status-danger: #EF4444;
-    --status-danger-bg: #FEE2E2;
+    --primary: #6366f1; /* Indigo */
+    --info-neon: #00e5ff; /* Neon cyan */
+    --warning-neon: #ffb300; /* Warm amber */
+    
+    --color-success: #10b981;
+    --color-warning: #f59e0b;
+    --color-danger: #ef4444;
+    
+    --text-white: #ffffff;
+    --text-silver: #c9d1d9;
+    --text-muted: #8b949e;
+}
+
+/* Base resets */
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
 }
 
 body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: var(--bg-gradient);
+    font-family: 'Outfit', 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg-dark-radial);
     background-attachment: fixed;
-    color: var(--text-main);
+    color: var(--text-silver);
+    display: flex;
+    flex-direction: column;
     min-height: 100vh;
 }
 
 /* Glassmorphism Navbar */
 .navbar-custom {
-    background: rgba(255, 255, 255, 0.85) !important;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.5);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    background: rgba(13, 10, 37, 0.7) !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border-glass);
+    padding: 0.85rem 1rem;
+    transition: all 0.3s;
 }
 
 .navbar-custom .navbar-brand {
-    color: var(--primary-color) !important;
     font-weight: 800;
-    font-size: 1.4rem;
     letter-spacing: -0.5px;
+    font-size: 1.35rem;
+    color: var(--text-white) !important;
+}
+
+.navbar-custom .navbar-brand .brand-text {
+    background: linear-gradient(135deg, #ffffff 30%, var(--info-neon) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .navbar-custom .nav-link {
     color: var(--text-muted) !important;
     font-weight: 600;
-    transition: all 0.2s ease;
+    font-size: 0.95rem;
+    padding: 0.5rem 1rem !important;
+    border-radius: 8px;
+    transition: all 0.25s ease;
 }
 
-.navbar-custom .nav-link:hover {
-    color: var(--primary-color) !important;
-}
-
-/* Typography Enhancements */
-h2 {
-    font-weight: 800;
-    letter-spacing: -1px;
-    color: #111827;
+.navbar-custom .nav-link:hover, 
+.navbar-custom .nav-link.active {
+    color: var(--info-neon) !important;
+    background: rgba(0, 229, 255, 0.08);
 }
 
 /* Premium Cards */
 .card-custom {
-    background: var(--card-bg);
-    border: 1px solid rgba(255,255,255,0.8);
-    border-radius: 20px;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-glass);
+    border-radius: 18px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    overflow: hidden;
 }
 
 .card-custom:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    transform: translateY(-4px);
+    border-color: var(--border-glass-hover);
+    box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.35);
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .card-custom .card-header {
     background: transparent;
-    border-bottom: 1px solid rgba(0,0,0,0.03);
-    padding: 1.25rem 1.5rem 0.5rem;
+    border-bottom: 1px solid var(--border-glass);
 }
 
-.card-custom .card-body {
-    padding: 1.5rem;
-}
-
-.card-custom .card-footer {
-    background: transparent;
-    border-top: 1px solid rgba(0,0,0,0.03);
-    padding: 1rem 1.5rem 1.5rem;
-}
-
-/* Custom Badges */
-.badge-category {
-    background-color: #F3F4F6;
-    color: #4B5563;
-    font-weight: 600;
-    padding: 0.5rem 0.8rem;
-    border-radius: 8px;
-    border: 1px solid #E5E7EB;
-}
-
-.badge-status {
-    padding: 0.4rem 0.8rem;
-    border-radius: 20px;
-    font-weight: 700;
-    font-size: 0.85rem;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.badge-available {
-    background-color: var(--status-success-bg) !important;
-    color: var(--status-success) !important;
-}
-
-.badge-queuing {
-    background-color: var(--status-warning-bg) !important;
-    color: var(--status-warning) !important;
-}
-
-.badge-maintenance {
-    background-color: var(--status-danger-bg) !important;
-    color: var(--status-danger) !important;
-}
-
-/* Pill Buttons for Filtering */
-.btn-filter-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-}
-
-.btn-filter {
-    border-radius: 9999px;
-    padding: 0.5rem 1.5rem;
-    font-weight: 600;
-    border: 2px solid var(--primary-color);
-    color: var(--primary-color);
-    background: transparent;
+/* Stat Cards */
+.stat-card {
     transition: all 0.2s;
-    text-decoration: none;
-    display: inline-block;
+}
+.stat-card:hover {
+    background-color: rgba(255, 255, 255, 0.06) !important;
 }
 
-.btn-filter:hover, .btn-filter.active {
-    background-color: var(--primary-color);
-    color: white;
-    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+/* Micro-typography */
+.fw-extrabold {
+    font-weight: 800;
+}
+.fw-black {
+    font-weight: 900;
+}
+.fs-8 {
+    font-size: 0.8rem !important;
+}
+.fs-9 {
+    font-size: 0.72rem !important;
 }
 
-/* Report Buttons */
-.btn-report {
-    border-radius: 12px;
-    font-weight: 700;
-    padding: 0.6rem;
+/* Alerts and Tickers */
+.alert-ticker {
+    max-height: 80px;
+    overflow-y: auto;
+}
+
+.alert-item {
+    font-size: 0.88rem;
+    line-height: 1.4;
+    border-left: 3px solid var(--color-danger);
+    padding-left: 10px;
+    margin-bottom: 6px;
+    animation: fadeIn 0.4s ease;
+}
+
+/* Leaflet Map Customizations */
+.map-container {
+    border-radius: 0 0 18px 18px;
+    z-index: 1;
+}
+
+/* Custom Marker Styling */
+.custom-marker {
+    background: transparent;
+    border: none;
+}
+
+.marker-pin {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    position: relative;
+    border: 2px solid #ffffff;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    cursor: pointer;
+}
+
+.marker-pin-green {
+    background-color: var(--color-success);
+    box-shadow: 0 0 8px var(--color-success);
+}
+.marker-pin-yellow {
+    background-color: var(--color-warning);
+    box-shadow: 0 0 8px var(--color-warning);
+}
+.marker-pin-red {
+    background-color: var(--color-danger);
+    box-shadow: 0 0 12px var(--color-danger);
+}
+
+/* Pulse animation for map markers */
+.marker-pulse {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    pointer-events: none;
+    opacity: 0.4;
+}
+
+.marker-pulse-green {
+    border: 3px solid var(--color-success);
+    animation: marker-pulse-anim 1.5s infinite ease-out;
+}
+.marker-pulse-yellow {
+    border: 3px solid var(--color-warning);
+    animation: marker-pulse-anim 1.5s infinite ease-out;
+}
+.marker-pulse-red {
+    border: 3px solid var(--color-danger);
+    animation: marker-pulse-anim 1.2s infinite ease-out;
+}
+
+@keyframes marker-pulse-anim {
+    0% {
+        transform: scale(0.5);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(1.6);
+        opacity: 0;
+    }
+}
+
+/* Popups on Dark Map */
+.leaflet-popup-content-wrapper {
+    background: rgba(13, 10, 37, 0.9) !important;
+    color: var(--text-white) !important;
+    border: 1px solid var(--border-glass);
+    border-radius: 12px !important;
+    backdrop-filter: blur(8px);
+}
+.leaflet-popup-tip {
+    background: rgba(13, 10, 37, 0.9) !important;
+    border: 1px solid var(--border-glass);
+}
+
+/* Buttons and Interactions */
+.btn-report-val {
+    border-radius: 10px;
+    padding: 0.5rem;
+    font-size: 0.88rem;
+    font-weight: 600;
     transition: all 0.2s;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    font-size: 0.85rem;
 }
 
-.btn-report:active {
-    transform: scale(0.95);
+.btn-report-val:hover {
+    transform: scale(1.02);
 }
 
-.btn-report-available {
-    color: var(--status-success);
-    border: 2px solid var(--status-success);
-    background: transparent;
+.btn-report-val.active {
+    box-shadow: 0 0 15px rgba(255,255,255,0.2);
 }
 
-.btn-report-available:hover {
-    background: var(--status-success);
-    color: white;
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+/* Customize active buttons manually in script */
+.btn-report-val.btn-active-success {
+    background-color: var(--color-success) !important;
+    color: #fff !important;
+    border-color: var(--color-success) !important;
+}
+.btn-report-val.btn-active-warning {
+    background-color: var(--color-warning) !important;
+    color: #000 !important;
+    border-color: var(--color-warning) !important;
+}
+.btn-report-val.btn-active-danger {
+    background-color: var(--color-danger) !important;
+    color: #fff !important;
+    border-color: var(--color-danger) !important;
+}
+.btn-report-val.btn-active-info {
+    background-color: var(--info-neon) !important;
+    color: #000 !important;
+    border-color: var(--info-neon) !important;
 }
 
-.btn-report-queuing {
-    color: var(--status-warning);
-    border: 2px solid var(--status-warning);
-    background: transparent;
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-.btn-report-queuing:hover {
-    background: var(--status-warning);
-    color: white;
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+@keyframes float-anim {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-4px); }
+    100% { transform: translateY(0px); }
 }
 
-.btn-report-maintenance {
-    color: var(--status-danger);
-    border: 2px solid var(--status-danger);
-    background: transparent;
+.animate-float {
+    animation: float-anim 3s infinite ease-in-out;
 }
 
-.btn-report-maintenance:hover {
-    background: var(--status-danger);
-    color: white;
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+.animate-pulse-slow {
+    animation: pulse-slow-anim 2.5s infinite ease-in-out;
 }
 
-/* Animation */
-@keyframes pulse-animation {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.15); }
-    100% { transform: scale(1); }
+@keyframes pulse-slow-anim {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.03); }
 }
 
-.animate-pulse {
-    animation: pulse-animation 0.4s ease-in-out;
+/* Footer style */
+.footer {
+    background: rgba(8, 7, 26, 0.95);
+    border-top: 1px solid var(--border-glass);
 }
 
-/* Admin Table */
-.table-container {
-    background: white;
-    border-radius: 20px;
-    padding: 1rem;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+/* Weather animation */
+.weather-card {
+    background: linear-gradient(135deg, rgba(30, 27, 75, 0.4) 0%, rgba(99, 102, 241, 0.15) 100%);
 }
 
-.table-custom {
-    margin-bottom: 0;
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
 }
-
-.table-custom th {
-    background: transparent;
-    color: #6B7280;
-    font-weight: 700;
-    text-transform: uppercase;
-    font-size: 0.8rem;
-    letter-spacing: 1px;
-    padding: 1rem;
-    border-bottom: 2px solid #E5E7EB;
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
 }
-
-.table-custom td {
-    padding: 1.25rem 1rem;
-    vertical-align: middle;
-    color: #1F2937;
-    font-weight: 500;
-    border-bottom: 1px solid #F3F4F6;
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
 }
-
-.table-custom tr:last-child td {
-    border-bottom: none;
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
 }
