@@ -3,9 +3,9 @@ import uuid
 from app.models.report import Report
 from app.models.location import Location
 
-api_bp = Blueprint('api', __name__, url_prefix='/api')
+sensation_api_bp = Blueprint('sensation_api', __name__, url_prefix='/api')
 
-@api_bp.route('/locations', methods=['GET'])
+@sensation_api_bp.route('/locations', methods=['GET'])
 def get_locations():
     """
     提供前端非同步獲取所有地點與最新狀態的 API。
@@ -24,7 +24,7 @@ def get_locations():
             
     return jsonify(locations)
 
-@api_bp.route('/report', methods=['POST'])
+@sensation_api_bp.route('/report', methods=['POST'])
 def submit_report():
     """
     處理前端送出的體感回報。
@@ -55,3 +55,16 @@ def submit_report():
         return jsonify({"status": "success", "message": "回報成功！感謝您的提供"}), 200
     else:
         return jsonify({"status": "error", "message": "伺服器發生錯誤，寫入失敗"}), 500
+
+@sensation_api_bp.route('/locations/<int:location_id>/trends', methods=['GET'])
+def get_location_trends(location_id):
+    """
+    提供前端非同步獲取特定地點的 24 小時歷史體感趨勢資料。
+    """
+    loc = Location.get_by_id(location_id)
+    if not loc:
+        return jsonify({"status": "error", "message": "找不到該地點"}), 404
+        
+    trends = Report.get_trends_by_location(location_id)
+    return jsonify(trends), 200
+

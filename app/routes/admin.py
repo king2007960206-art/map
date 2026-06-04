@@ -1,9 +1,9 @@
 from flask import Blueprint, render_template
 from app.models.status_log import StatusLog
 
-admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
+equipment_admin_bp = Blueprint('equipment_admin', __name__, url_prefix='/admin')
 
-@admin_bp.route('/')
+@equipment_admin_bp.route('/')
 def admin_dashboard():
     """
     管理員儀表板

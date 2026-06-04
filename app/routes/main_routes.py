@@ -2,9 +2,9 @@ from flask import Blueprint, render_template
 from app.models.location import Location
 from app.models.report import Report
 
-main_bp = Blueprint('main', __name__)
+sensation_main_bp = Blueprint('sensation_main', __name__)
 
-@main_bp.route('/', methods=['GET'])
+@sensation_main_bp.route('/', methods=['GET'])
 def index():
     """首頁：顯示所有地點與最新狀態"""
     locations = Location.get_all()
@@ -19,6 +19,9 @@ def index():
             
     return render_template('index.html', locations=locations)
 
-@main_bp.route('/admin/dashboard', methods=['GET'])
+@sensation_main_bp.route('/admin/dashboard', methods=['GET'])
 def dashboard():
-    return render_template('base.html') # 暫時回傳 base
+    locations = Location.get_all()
+    return render_template('dashboard.html', locations=locations)
+
+

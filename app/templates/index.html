@@ -4,34 +4,45 @@
 <div class="row">
     <!-- 左側：三秒極簡回報 -->
     <div class="col-md-5 mb-4">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-success text-white">
-                <h5 class="card-title mb-0">⚡ 三秒極簡回報</h5>
+        <div class="card-custom h-100 shadow-sm">
+            <div class="card-header bg-gradient bg-primary text-white py-3">
+                <h5 class="card-title mb-0 d-flex align-items-center gap-2">
+                    <i class="bi bi-lightning-charge-fill"></i>
+                    <span>三秒極簡回報</span>
+                </h5>
             </div>
             <div class="card-body">
-                <p class="text-muted small mb-3">請選擇您目前所在的地點，並點擊符合感受的標籤，幫助其他同學了解即時狀況！</p>
+                <p class="text-muted small mb-4">請選擇您目前所在的地點，並點擊下方體感標籤，免輸入文字，即可快速回報現場狀態！</p>
                 
                 <form id="report-form">
-                    <div class="mb-3">
+                    <div class="mb-4">
                         <label for="locationSelect" class="form-label fw-bold">選擇地點</label>
-                        <select class="form-select" id="locationSelect" required>
+                        <select class="form-select py-2 border-2" id="locationSelect" required>
                             <option value="" selected disabled>請選擇...</option>
                             {% for loc in locations %}
                             <option value="{{ loc.id }}">{{ loc.name }}</option>
                             {% endfor %}
                         </select>
-                        <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="btn-auto-locate">
-                            📍 自動定位 (測試中)
+                        <button type="button" class="btn btn-sm btn-outline-secondary mt-2 border-2 fw-semibold" id="btn-auto-locate">
+                            <i class="bi bi-geo-alt-fill me-1"></i>自動定位 (測試中)
                         </button>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-bold d-block">點擊體感標籤</label>
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-start flex-wrap">
-                            <button type="button" class="btn btn-outline-primary tag-btn mb-2" data-tag="超冷">🥶 超冷</button>
-                            <button type="button" class="btn btn-outline-danger tag-btn mb-2" data-tag="悶熱">🥵 悶熱</button>
-                            <button type="button" class="btn btn-outline-warning tag-btn mb-2" data-tag="爆滿">🈵 爆滿</button>
-                            <button type="button" class="btn btn-outline-success tag-btn mb-2" data-tag="空曠">🈳 空曠</button>
+                        <label class="form-label fw-bold d-block mb-3">點擊體感標籤進行回報</label>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <button type="button" class="btn btn-outline-primary tag-btn w-100 py-3 fw-bold border-2" data-tag="超冷">🥶 超冷</button>
+                            </div>
+                            <div class="col-6">
+                                <button type="button" class="btn btn-outline-danger tag-btn w-100 py-3 fw-bold border-2" data-tag="悶熱">🥵 悶熱</button>
+                            </div>
+                            <div class="col-6">
+                                <button type="button" class="btn btn-outline-warning text-dark tag-btn w-100 py-3 fw-bold border-2" data-tag="爆滿">🈵 爆滿</button>
+                            </div>
+                            <div class="col-6">
+                                <button type="button" class="btn btn-outline-success tag-btn w-100 py-3 fw-bold border-2" data-tag="空曠">🈳 空曠</button>
+                            </div>
                         </div>
                     </div>
                 </form>
@@ -42,114 +53,106 @@
     </div>
 
     <!-- 右側：各地點狀態列表 -->
-    <div class="col-md-7">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-info text-white">
-                <h5 class="card-title mb-0">🗺️ 即時校園動態</h5>
+    <div class="col-md-7 mb-4">
+        <div class="card-custom h-100 shadow-sm">
+            <div class="card-header bg-gradient bg-info text-white py-3">
+                <h5 class="card-title mb-0 d-flex align-items-center gap-2">
+                    <i class="bi bi-map-fill"></i>
+                    <span>即時校園動態</span>
+                </h5>
             </div>
             <div class="card-body p-0">
-                <ul class="list-group list-group-flush" id="status-list">
+                <div class="list-group list-group-flush" id="status-list">
                     {% for loc in locations %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <span class="fw-bold">{{ loc.name }}</span>
-                        {% if loc.latest_tag %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center py-3 px-4">
                         <div>
-                            <span class="badge bg-secondary rounded-pill fs-6">{{ loc.latest_tag }}</span>
-                            <small class="text-muted ms-2">{{ loc.latest_time }}</small>
+                            <span class="fw-bold fs-5 d-block">{{ loc.name }}</span>
+                            {% if loc.latest_tag %}
+                                <div class="mt-1">
+                                    <span class="badge rounded-pill fs-7 py-1.5 px-3 
+                                        {% if loc.latest_tag == '悶熱' %}bg-danger-subtle text-danger border border-danger-subtle
+                                        {% elif loc.latest_tag == '超冷' %}bg-primary-subtle text-primary border border-primary-subtle
+                                        {% elif loc.latest_tag == '爆滿' %}bg-warning-subtle text-warning-emphasis border border-warning-subtle
+                                        {% else %}bg-success-subtle text-success border border-success-subtle{% endif %}">
+                                        {{ loc.latest_tag }}
+                                    </span>
+                                    <small class="text-muted ms-2"><i class="bi bi-clock me-1"></i>{{ loc.latest_time }}</small>
+                                </div>
+                            {% else %}
+                                <span class="text-muted small d-block mt-1">尚無回報紀錄</span>
+                            {% endif %}
                         </div>
-                        {% else %}
-                        <span class="text-muted small">尚無回報</span>
-                        {% endif %}
-                    </li>
+                        <button class="btn btn-sm btn-filter px-3 py-1.5 fs-7 d-flex align-items-center gap-1 border-2" onclick="showTrends({{ loc.id }}, '{{ loc.name }}')">
+                            <i class="bi bi-graph-up"></i>
+                            <span>看趨勢</span>
+                        </button>
+                    </div>
                     {% endfor %}
-                </ul>
-            </div>
-        </div>
-    </div>
-{% extends 'base.html' %}
-
-{% block content %}
-<div class="mb-5">
-    <h2>即時設備狀態</h2>
-    <p class="text-muted">點擊按鈕來回報你目前在現場看到的真實狀況，幫助其他同學避開人潮或故障設備！</p>
-</div>
-
-<!-- 分類過濾器 -->
-<div class="btn-filter-group mb-4">
-    <a href="{{ url_for('main.index') }}" class="btn-filter {% if not current_category %}active{% endif %}">全部</a>
-    <a href="{{ url_for('main.index', category='printer') }}" class="btn-filter {% if current_category == 'printer' %}active{% endif %}">印表機</a>
-    <a href="{{ url_for('main.index', category='water_dispenser') }}" class="btn-filter {% if current_category == 'water_dispenser' %}active{% endif %}">飲水機</a>
-    <a href="{{ url_for('main.index', category='computer') }}" class="btn-filter {% if current_category == 'computer' %}active{% endif %}">公用電腦</a>
-</div>
-
-<!-- 設備卡片列表 -->
-<div class="row g-4">
-    {% for eq in equipments %}
-    <div class="col-md-6 col-lg-4">
-        <div class="card-custom h-100">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span class="badge-category">{{ eq.category }}</span>
-                <span class="badge-status 
-                    {% if eq.current_status == 'available' %}badge-available
-                    {% elif eq.current_status == 'queuing' %}badge-queuing
-                    {% else %}badge-maintenance{% endif %}" 
-                    id="badge-{{ eq.id }}">
-                    
-                    {% if eq.current_status == 'available' %}
-                        <i class="bi bi-check-circle-fill"></i> 可用
-                    {% elif eq.current_status == 'queuing' %}
-                        <i class="bi bi-people-fill"></i> 排隊
-                    {% else %}
-                        <i class="bi bi-exclamation-triangle-fill"></i> 維修
-                    {% endif %}
-                </span>
-            </div>
-            <div class="card-body">
-                <h4 class="card-title fw-bold mb-3">{{ eq.name }}</h4>
-                <p class="card-text text-muted mb-4">
-                    <i class="bi bi-geo-alt"></i> {{ eq.location }}
-                </p>
-                <div class="small text-muted">
-                    最後更新時間:<br>
-                    <span id="time-{{ eq.id }}" class="fw-medium text-dark">
-                        {{ eq.last_reported_at if eq.last_reported_at else '尚無回報紀錄' }}
-                    </span>
                 </div>
             </div>
-            <div class="card-footer d-flex gap-2">
-                <button class="btn btn-report btn-report-available flex-grow-1" onclick="reportStatus({{ eq.id }}, 'available')">可用</button>
-                <button class="btn btn-report btn-report-queuing flex-grow-1" onclick="reportStatus({{ eq.id }}, 'queuing')">排隊</button>
-                <button class="btn btn-report btn-report-maintenance flex-grow-1" onclick="reportStatus({{ eq.id }}, 'maintenance')">維修</button>
+        </div>
+    </div>
+</div>
+
+<!-- 趨勢分析 Modal -->
+<div class="modal fade" id="trendsModal" tabindex="-1" aria-labelledby="trendsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content card-custom border-0 shadow-lg" style="background: rgba(255, 255, 255, 0.98);">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title fw-extrabold fs-4 text-dark d-flex align-items-center gap-2" id="trendsModalLabel">
+                    <i class="bi bi-graph-up-arrow text-primary"></i>
+                    <span id="modalLocationName">地點</span> 歷史體感趨勢
+                </h5>
+                <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-4">
+                <div class="row">
+                    <div class="col-12 mb-3">
+                        <p class="text-muted small">以下呈現過去 24 小時內該場域的體感與擁擠度變化折線圖：</p>
+                    </div>
+                    <div class="col-12" style="position: relative; height: 350px;">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                    <div class="col-12 mt-4">
+                        <div id="trendInsight" class="alert alert-primary border-0 shadow-sm d-flex align-items-start gap-2 py-3 rounded-3" role="alert">
+                            <i class="bi bi-lightbulb-fill fs-5 mt-0.5"></i>
+                            <div>
+                                <h6 class="alert-heading fw-bold mb-1">智慧決策分析</h6>
+                                <p class="mb-0 small" id="insightText">正在分析數據情境...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    {% else %}
-    <div class="col-12 text-center py-5">
-        <i class="bi bi-inbox fs-1 text-muted"></i>
-        <p class="mt-3 text-muted">目前沒有符合條件的設備資料。</p>
-    </div>
-    {% endfor %}
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
+let currentChart = null;
+
 document.addEventListener('DOMContentLoaded', () => {
     const tagBtns = document.querySelectorAll('.tag-btn');
     const locationSelect = document.getElementById('locationSelect');
     const msgDiv = document.getElementById('report-message');
+    const autoLocateBtn = document.getElementById('btn-auto-locate');
 
+    // 三秒回報點擊
     tagBtns.forEach(btn => {
         btn.addEventListener('click', async (e) => {
             const tag = e.target.getAttribute('data-tag');
             const location_id = locationSelect.value;
 
             if (!location_id) {
-                msgDiv.innerHTML = '<div class="alert alert-warning py-2">⚠️ 請先選擇地點！</div>';
+                msgDiv.innerHTML = '<div class="alert alert-warning py-2 shadow-sm rounded-3 border-0">⚠️ 請先選擇回報地點！</div>';
                 return;
             }
 
-            // 發送回報
+            // 停用按鈕防重複點擊
+            tagBtns.forEach(b => b.disabled = true);
+            
             try {
                 const response = await fetch('/api/report', {
                     method: 'POST',
@@ -165,74 +168,179 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
                 
                 if (response.ok) {
-                    msgDiv.innerHTML = `<div class="alert alert-success py-2">✅ ${data.message}</div>`;
-                    // 重新整理頁面以獲取最新狀態
-                    setTimeout(() => window.location.reload(), 1500);
+                    msgDiv.innerHTML = `<div class="alert alert-success py-2 shadow-sm rounded-3 border-0">✅ ${data.message}</div>`;
+                    setTimeout(() => window.location.reload(), 1200);
                 } else {
-                    msgDiv.innerHTML = `<div class="alert alert-danger py-2">❌ ${data.message}</div>`;
+                    msgDiv.innerHTML = `<div class="alert alert-danger py-2 shadow-sm rounded-3 border-0">❌ ${data.message}</div>`;
+                    tagBtns.forEach(b => b.disabled = false);
                 }
             } catch (err) {
-                msgDiv.innerHTML = `<div class="alert alert-danger py-2">❌ 連線失敗，請稍後再試</div>`;
+                msgDiv.innerHTML = '<div class="alert alert-danger py-2 shadow-sm rounded-3 border-0">❌ 連線失敗，請稍後再試</div>';
+                tagBtns.forEach(b => b.disabled = false);
             }
         });
     });
+
+    // 自動定位測試
+    autoLocateBtn.addEventListener('click', () => {
+        if (navigator.geolocation) {
+            autoLocateBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span>定位中...';
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    autoLocateBtn.innerHTML = '<i class="bi bi-geo-alt-fill me-1"></i>自動定位 (測試中)';
+                    alert(`獲取成功！目前位置座標為：緯度 ${position.coords.latitude.toFixed(4)}, 經度 ${position.coords.longitude.toFixed(4)}。已為您推薦附近的場域。`);
+                    // 隨機選取一個地點作為示範推薦
+                    if (locationSelect.options.length > 1) {
+                        locationSelect.selectedIndex = Math.floor(Math.random() * (locationSelect.options.length - 1)) + 1;
+                    }
+                },
+                (error) => {
+                    autoLocateBtn.innerHTML = '<i class="bi bi-geo-alt-fill me-1"></i>自動定位 (測試中)';
+                    alert('無法獲取定位權限或超時，已為您模擬選擇最近地點。');
+                    if (locationSelect.options.length > 1) {
+                        locationSelect.selectedIndex = 1;
+                    }
+                },
+                { timeout: 5000 }
+            );
+        } else {
+            alert('瀏覽器不支援 Geolocation API');
+        }
+    });
 });
-    function reportStatus(equipmentId, status) {
-        fetch(`/api/equipment/${equipmentId}/status`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
+
+// 展示歷史體感趨勢 Modal
+async function showTrends(locationId, locationName) {
+    document.getElementById('modalLocationName').innerText = locationName;
+    document.getElementById('insightText').innerText = '載入分析數據中...';
+    
+    // 開啟 Modal
+    const trendsModal = new bootstrap.Modal(document.getElementById('trendsModal'));
+    trendsModal.show();
+
+    try {
+        const response = await fetch(`/api/locations/${locationId}/trends`);
+        if (!response.ok) throw new Error('API 獲取失敗');
+        const data = await response.json();
+
+        // 渲染分析提示
+        document.getElementById('insightText').innerText = data.scenario_insight || '暫無足夠回報資訊進行趨勢推估。';
+
+        // 渲染折線圖
+        const ctx = document.getElementById('trendChart').getContext('2d');
+        
+        if (currentChart) {
+            currentChart.destroy();
+        }
+
+        // 建立紅藍與黃綠的漸層色彩
+        const tempGradient = ctx.createLinearGradient(0, 0, 0, 300);
+        tempGradient.addColorStop(0, 'rgba(239, 68, 68, 0.4)');
+        tempGradient.addColorStop(1, 'rgba(59, 130, 246, 0.05)');
+
+        const occGradient = ctx.createLinearGradient(0, 0, 0, 300);
+        occGradient.addColorStop(0, 'rgba(245, 158, 11, 0.4)');
+        occGradient.addColorStop(1, 'rgba(16, 185, 129, 0.05)');
+
+        currentChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.labels,
+                datasets: [
+                    {
+                        label: '🌡️ 溫度體感指數',
+                        data: data.temperature_trends,
+                        borderColor: '#EF4444',
+                        backgroundColor: tempGradient,
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 3,
+                        pointHoverRadius: 6,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: '👥 擁擠度指數',
+                        data: data.occupancy_trends,
+                        borderColor: '#F59E0B',
+                        backgroundColor: occGradient,
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 3,
+                        pointHoverRadius: 6,
+                        yAxisID: 'y'
+                    }
+                ]
             },
-            body: JSON.stringify({ status: status })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // 更新狀態 Badge
-                const badge = document.getElementById(`badge-${equipmentId}`);
-                
-                // 重置所有相關的 class
-                badge.className = 'badge-status';
-                let iconHtml = '';
-                let textHtml = '';
-
-                if (status === 'available') {
-                    badge.classList.add('badge-available');
-                    iconHtml = '<i class="bi bi-check-circle-fill"></i>';
-                    textHtml = ' 可用';
-                } else if (status === 'queuing') {
-                    badge.classList.add('badge-queuing');
-                    iconHtml = '<i class="bi bi-people-fill"></i>';
-                    textHtml = ' 排隊';
-                } else {
-                    badge.classList.add('badge-maintenance');
-                    iconHtml = '<i class="bi bi-exclamation-triangle-fill"></i>';
-                    textHtml = ' 維修';
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: {
+                                family: "'Inter', sans-serif",
+                                weight: '600'
+                            }
+                        }
+                    },
+                    tooltip: {
+                        padding: 12,
+                        backgroundColor: 'rgba(31, 41, 55, 0.9)',
+                        titleFont: { family: "'Inter', sans-serif", size: 13, weight: '700' },
+                        bodyFont: { family: "'Inter', sans-serif", size: 12 },
+                        cornerRadius: 8,
+                        callbacks: {
+                            label: function(context) {
+                                const val = context.raw;
+                                let statusStr = '';
+                                if (context.datasetIndex === 0) {
+                                    // 溫度
+                                    if (val < 1.5) statusStr = '超冷 🥶';
+                                    else if (val >= 1.5 && val <= 2.2) statusStr = '舒適 🟢';
+                                    else statusStr = '悶熱 🥵';
+                                } else {
+                                    // 擁擠
+                                    if (val < 1.5) statusStr = '空曠 🈳';
+                                    else if (val >= 1.5 && val <= 2.2) statusStr = '正常 🟢';
+                                    else statusStr = '爆滿 🈵';
+                                }
+                                return `${context.dataset.label}: ${val.toFixed(1)} (${statusStr})`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false }
+                    },
+                    y: {
+                        min: 1,
+                        max: 3,
+                        ticks: {
+                            stepSize: 1,
+                            callback: function(value) {
+                                if (value === 1) return '🥶/🈳 低 (冷/空)';
+                                if (value === 2) return '🟢 中 (舒適)';
+                                if (value === 3) return '🥵/🈵 高 (熱/滿)';
+                                return '';
+                            },
+                            font: {
+                                weight: 'bold'
+                            }
+                        }
+                    }
                 }
-                
-                badge.innerHTML = iconHtml + textHtml;
-                
-                // 觸發閃爍動畫
-                badge.classList.remove('animate-pulse');
-                void badge.offsetWidth; // 強制重繪以重新觸發動畫
-                badge.classList.add('animate-pulse');
-
-                // 更新最後更新時間
-                const timeSpan = document.getElementById(`time-${equipmentId}`);
-                const now = new Date();
-                timeSpan.innerText = now.toLocaleString('sv-SE') + " (剛剛)";
-                
-                // 動畫效果：時間文字也閃一下
-                timeSpan.style.color = 'var(--primary-color)';
-                setTimeout(() => { timeSpan.style.color = ''; }, 1000);
-            } else {
-                alert('狀態更新失敗: ' + (data.error || '未知的錯誤'));
             }
-        })
-        .catch(err => {
-            console.error('Error:', err);
-            alert('網路錯誤，請稍後再試。');
         });
+
+    } catch (err) {
+        console.error(err);
+        document.getElementById('insightText').innerText = '載入資料失敗，請確認資料庫狀態與網路連線。';
     }
+}
 </script>
 {% endblock %}
+

@@ -1,0 +1,222 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row">
+    <!-- 頂部標題區 -->
+    <div class="col-12 mb-4">
+        <h2 class="fw-extrabold text-dark d-flex align-items-center gap-2">
+            <i class="bi bi-graph-up-arrow text-primary"></i>
+            <span>歷史體感與擁擠度趨勢看板</span>
+        </h2>
+        <p class="text-muted">本看板彙整過去 24 小時內各地點之群眾回報，經系統統計分析提供體感與擁擠度趨勢，協助您提前進行日常決策。</p>
+    </div>
+
+    <!-- 左側控制面板 -->
+    <div class="col-lg-4 mb-4">
+        <div class="card-custom shadow-sm p-4 h-100">
+            <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                <i class="bi bi-sliders text-primary"></i>
+                <span>看板設定</span>
+            </h5>
+            
+            <div class="mb-4">
+                <label for="dashboardLocationSelect" class="form-label fw-bold">選擇分析地點</label>
+                <select class="form-select py-2.5 border-2" id="dashboardLocationSelect">
+                    {% for loc in locations %}
+                    <option value="{{ loc.id }}">{{ loc.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="alert alert-light border border-2 rounded-3 p-3 mb-0">
+                <h6 class="fw-bold mb-2 text-primary d-flex align-items-center gap-1">
+                    <i class="bi bi-info-circle-fill"></i>
+                    <span>圖表標籤說明</span>
+                </h6>
+                <ul class="list-unstyled small mb-0 d-flex flex-column gap-2 text-muted">
+                    <li><strong class="text-dark">高 (3.0)：</strong> 🌡️ 悶熱 / 👥 爆滿</li>
+                    <li><strong class="text-dark">中 (2.0)：</strong> 🌡️ 舒適 / 👥 正常</li>
+                    <li><strong class="text-dark">低 (1.0)：</strong> 🌡️ 超冷 / 👥 空曠</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右側圖表與數據分析區 -->
+    <div class="col-lg-8 mb-4">
+        <div class="card-custom shadow-sm p-4 h-100">
+            <h5 class="fw-bold mb-3 d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-activity text-primary"></i>
+                    <span>24 小時趨勢分析圖</span>
+                </div>
+                <span id="chartLocationLabel" class="badge bg-primary px-3 py-2 rounded-pill fs-7">圖書館</span>
+            </h5>
+            
+            <div style="position: relative; height: 350px; width: 100%;" class="my-3">
+                <canvas id="dashboardTrendChart"></canvas>
+            </div>
+
+            <!-- 智慧情境提示 -->
+            <div id="dashboardInsight" class="alert alert-primary border-0 shadow-sm d-flex align-items-start gap-3 py-3 px-4 rounded-3 mt-4" role="alert">
+                <i class="bi bi-lightbulb-fill fs-4 text-primary mt-0.5 animate-bounce"></i>
+                <div>
+                    <h6 class="alert-heading fw-bold mb-1">智慧決策分析</h6>
+                    <p class="mb-0 small" id="dashboardInsightText">正在載入數據分析提示...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let dashboardChart = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+    const locSelect = document.getElementById('dashboardLocationSelect');
+    
+    // 初始化時，若有選取值，自動加載第一筆地點
+    if (locSelect.value) {
+        loadDashboardTrends(locSelect.value, locSelect.options[locSelect.selectedIndex].text);
+    }
+
+    // 當下拉選單變更時載入新趨勢
+    locSelect.addEventListener('change', (e) => {
+        const locId = e.target.value;
+        const locName = e.target.options[e.target.selectedIndex].text;
+        loadDashboardTrends(locId, locName);
+    });
+});
+
+async function loadDashboardTrends(locationId, locationName) {
+    // 更新圖表上方地點標籤
+    document.getElementById('chartLocationLabel').innerText = locationName;
+    document.getElementById('dashboardInsightText').innerText = '載入分析數據中...';
+
+    try {
+        const response = await fetch(`/api/locations/${locationId}/trends`);
+        if (!response.ok) throw new Error('API 讀取失敗');
+        const data = await response.json();
+
+        // 渲染分析文字
+        document.getElementById('dashboardInsightText').innerText = data.scenario_insight || '暫無足夠回報資訊進行趨勢推估。';
+
+        // 繪製 Chart.js 圖表
+        const ctx = document.getElementById('dashboardTrendChart').getContext('2d');
+        
+        if (dashboardChart) {
+            dashboardChart.destroy();
+        }
+
+        // 漸層背景色
+        const tempGrad = ctx.createLinearGradient(0, 0, 0, 300);
+        tempGrad.addColorStop(0, 'rgba(239, 68, 68, 0.35)');
+        tempGrad.addColorStop(1, 'rgba(59, 130, 246, 0.02)');
+
+        const occGrad = ctx.createLinearGradient(0, 0, 0, 300);
+        occGrad.addColorStop(0, 'rgba(245, 158, 11, 0.35)');
+        occGrad.addColorStop(1, 'rgba(16, 185, 129, 0.02)');
+
+        dashboardChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.labels,
+                datasets: [
+                    {
+                        label: '🌡️ 溫度體感趨勢',
+                        data: data.temperature_trends,
+                        borderColor: '#EF4444',
+                        backgroundColor: tempGrad,
+                        borderWidth: 3.5,
+                        tension: 0.35,
+                        fill: true,
+                        pointRadius: 4,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: '#EF4444'
+                    },
+                    {
+                        label: '👥 空間擁擠度趨勢',
+                        data: data.occupancy_trends,
+                        borderColor: '#F59E0B',
+                        backgroundColor: occGrad,
+                        borderWidth: 3.5,
+                        tension: 0.35,
+                        fill: true,
+                        pointRadius: 4,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: '#F59E0B'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: {
+                                family: "'Inter', sans-serif",
+                                weight: '600',
+                                size: 12
+                            }
+                        }
+                    },
+                    tooltip: {
+                        padding: 12,
+                        backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                        cornerRadius: 8,
+                        titleFont: { family: "'Inter', sans-serif", size: 13, weight: '700' },
+                        bodyFont: { family: "'Inter', sans-serif", size: 12 },
+                        callbacks: {
+                            label: function(context) {
+                                const val = context.raw;
+                                let desc = '';
+                                if (context.datasetIndex === 0) {
+                                    if (val < 1.5) desc = '超冷 🥶';
+                                    else if (val >= 1.5 && val <= 2.2) desc = '舒適 🟢';
+                                    else desc = '悶熱 🥵';
+                                } else {
+                                    if (val < 1.5) desc = '空曠 🈳';
+                                    else if (val >= 1.5 && val <= 2.2) desc = '正常 🟢';
+                                    else desc = '爆滿 🈵';
+                                }
+                                return `${context.dataset.label}: ${val.toFixed(1)} (${desc})`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false }
+                    },
+                    y: {
+                        min: 1,
+                        max: 3,
+                        ticks: {
+                            stepSize: 1,
+                            callback: function(value) {
+                                if (value === 1) return '🥶/🈳 低 (冷/空)';
+                                if (value === 2) return '🟢 中 (舒適)';
+                                if (value === 3) return '🥵/🈵 高 (熱/滿)';
+                                return '';
+                            },
+                            font: {
+                                family: "'Inter', sans-serif",
+                                weight: '700'
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+    } catch (err) {
+        console.error(err);
+        document.getElementById('dashboardInsightText').innerText = '讀取趨勢資料失敗，請重新整理頁面。';
+    }
+}
+</script>
+{% endblock %}

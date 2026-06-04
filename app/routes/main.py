@@ -1,14 +1,14 @@
 from flask import Blueprint, render_template, request
 from app.models.equipment import Equipment
 
-main_bp = Blueprint('main', __name__)
+equipment_main_bp = Blueprint('equipment_main', __name__)
 
-@main_bp.route('/')
+@equipment_main_bp.route('/')
 def index():
     """
     首頁：顯示設備列表
     - 可接收 `?category=` 來過濾特定種類的設備
-    - 向 Model 查詢設備陣列後，渲染 index.html
+    - 向 Model 查詢設備陣列後，渲染 equipment.html
     """
     # 取得 URL 查詢參數
     category = request.args.get('category')
@@ -17,4 +17,5 @@ def index():
     equipments = Equipment.get_all(category=category)
     
     # 渲染首頁模板，並將變數傳遞給前端
-    return render_template('index.html', equipments=equipments, current_category=category)
+    return render_template('equipment.html', equipments=equipments, current_category=category)
+

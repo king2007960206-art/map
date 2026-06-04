@@ -2,9 +2,9 @@ from flask import Blueprint, request, jsonify
 from app.models.equipment import Equipment
 from app.models.status_log import StatusLog
 
-api_bp = Blueprint('api', __name__, url_prefix='/api')
+equipment_api_bp = Blueprint('equipment_api', __name__, url_prefix='/api/equipment')
 
-@api_bp.route('/equipment/<int:equipment_id>/status', methods=['POST'])
+@equipment_api_bp.route('/<int:equipment_id>/status', methods=['POST'])
 def update_equipment_status(equipment_id):
     """
     非同步狀態回報 API
