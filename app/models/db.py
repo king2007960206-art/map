@@ -133,6 +133,18 @@ def seed_data():
                         base_crowd = random.randint(30, 55)
                     else:
                         base_crowd = random.randint(10, 20)
+                else:
+                    # Default for any other location names (e.g. 圖書館 1 樓, 學生活動中心, etc.)
+                    if hour >= 23 or hour < 7:
+                        base_crowd = random.randint(0, 10)
+                    elif 8 <= hour <= 12:
+                        base_crowd = random.randint(40, 70)
+                    elif 13 <= hour <= 17:
+                        base_crowd = random.randint(60, 85)
+                    elif 18 <= hour <= 22:
+                        base_crowd = random.randint(30, 60)
+                    else:
+                        base_crowd = random.randint(15, 35)
                 
                 # Adjust for weekend
                 if is_weekend:
