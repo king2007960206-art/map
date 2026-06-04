@@ -18,3 +18,13 @@ def index():
     
     # 渲染首頁模板，並將變數傳遞給前端
     return render_template('index.html', equipments=equipments, current_category=category)
+
+@main_bp.route('/leaderboard')
+def leaderboard():
+    """
+    貢獻排行榜頁面
+    """
+    from app.models.user import User
+    users = User.get_leaderboard(limit=10)
+    return render_template('leaderboard.html', leaderboard=users)
+

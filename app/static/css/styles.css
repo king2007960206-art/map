@@ -246,3 +246,119 @@ h2 {
 .table-custom tr:last-child td {
     border-bottom: none;
 }
+
+/* User Level & Points Styles */
+.badge-level {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.3rem 0.6rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.75rem;
+    gap: 4px;
+    border: 1px solid transparent;
+    text-shadow: none;
+}
+
+.level-rookie {
+    background-color: #F3F4F6;
+    color: #6B7280;
+    border-color: #E5E7EB;
+}
+
+.level-helper {
+    background-color: #D1FAE5;
+    color: #059669;
+    border-color: #A7F3D0;
+}
+
+.level-patrol {
+    background-color: #DBEAFE;
+    color: #2563EB;
+    border-color: #BFDBFE;
+}
+
+/* 校園守護者：金色漸變與微光脈動效果 */
+.level-guardian {
+    background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+    color: #D97706;
+    border-color: #FCD34D;
+    box-shadow: 0 0 10px rgba(251, 191, 36, 0.4);
+    position: relative;
+    overflow: hidden;
+    animation: gold-pulse 2s infinite ease-in-out;
+}
+
+@keyframes gold-pulse {
+    0%, 100% {
+        box-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 0 16px rgba(251, 191, 36, 0.7);
+        transform: scale(1.02);
+    }
+}
+
+/* User Widget in Navbar */
+.user-profile-widget {
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(79, 70, 229, 0.25);
+    border-radius: 9999px;
+    padding: 0.25rem 1rem 0.25rem 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.2s;
+    text-decoration: none !important;
+}
+
+.user-profile-widget:hover {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: var(--primary-color);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.1);
+}
+
+.user-avatar-circle {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.8rem;
+}
+
+/* Verification Button Styles */
+.btn-verify {
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.75rem;
+    padding: 0.35rem 0.75rem;
+    transition: all 0.2s;
+    border: 1px solid rgba(79, 70, 229, 0.2);
+    background: rgba(255,255,255,0.7);
+    color: var(--primary-color);
+}
+
+.btn-verify:hover {
+    background-color: var(--primary-color);
+    color: white;
+    box-shadow: 0 4px 10px rgba(79, 70, 229, 0.15);
+}
+
+/* Admin Dashboard Extra styles */
+.suspicious-row {
+    background-color: rgba(239, 68, 68, 0.05) !important;
+    border-left: 4px solid var(--status-danger) !important;
+}
+
+.invalid-row {
+    opacity: 0.6;
+    text-decoration: line-through;
+    background-color: #F9FAFB !important;
+}
+

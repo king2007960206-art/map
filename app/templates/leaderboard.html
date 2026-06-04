@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="mb-5 text-center">
+    <h1 class="display-5 fw-bold mb-2">🏆 校園守護者排行榜</h1>
+    <p class="text-muted fs-5">感謝所有熱心回報設備即時動態、幫助全校同學的守護者們！</p>
+</div>
+
+<div class="row">
+    <div class="col-12 col-md-10 col-lg-8 mx-auto">
+        <div class="table-container shadow-lg border border-white">
+            <h4 class="fw-bold mb-4 px-2 d-flex align-items-center gap-2">
+                <i class="bi bi-fire text-danger animate-pulse"></i>
+                熱心貢獻 Top 10
+            </h4>
+            <div class="table-responsive">
+                <table class="table table-borderless table-custom table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th scope="col" style="width: 10%;">排名</th>
+                            <th scope="col" style="width: 40%;">守護者暱稱</th>
+                            <th scope="col" style="width: 30%;">守護者等級</th>
+                            <th scope="col" class="text-end" style="width: 20%;">累計積分</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in leaderboard %}
+                        <tr class="{% if user.session_id == current_user.session_id %}table-active-user{% endif %}">
+                            <td class="fw-bold fs-5">
+                                {% if loop.index == 1 %}
+                                    <span class="rank-badge rank-1">🥇</span>
+                                {% elif loop.index == 2 %}
+                                    <span class="rank-badge rank-2">🥈</span>
+                                {% elif loop.index == 3 %}
+                                    <span class="rank-badge rank-3">🥉</span>
+                                {% else %}
+                                    <span class="text-muted ps-2">{{ loop.index }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="fw-bold text-dark fs-6">{{ user.nickname }}</span>
+                                    {% if user.session_id == current_user.session_id %}
+                                        <span class="badge bg-primary text-white rounded-pill" style="font-size: 0.65rem;">我</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge-level {{ user.level_info.level_class }}">
+                                    {{ user.level_info.level_name }}
+                                </span>
+                            </td>
+                            <td class="text-end fw-bold text-primary fs-5">
+                                {{ user.points }} <span class="fs-6 text-muted fw-normal">pts</span>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center py-5 text-muted">
+                                <i class="bi bi-people fs-1 mb-3 d-block"></i>
+                                目前尚無人上榜，快去首頁回報設備狀態吧！
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="mt-4 text-center">
+            <a href="{{ url_for('main.index') }}" class="btn btn-outline-primary rounded-pill px-4 py-2 fw-bold">
+                <i class="bi bi-arrow-left me-1"></i> 返回設備列表回報
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* 排行榜專屬微調，避免與全域 styles 衝突 */
+    .table-active-user {
+        background-color: rgba(79, 70, 229, 0.08) !important;
+        border-left: 4px solid var(--primary-color) !important;
+    }
+    .rank-badge {
+        font-size: 1.5rem;
+        display: inline-block;
+        animation: float 3s ease-in-out infinite;
+    }
+    .rank-2 { animation-delay: 0.5s; }
+    .rank-3 { animation-delay: 1s; }
+    @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-4px); }
+    }
+</style>
+{% endblock %}

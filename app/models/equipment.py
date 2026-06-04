@@ -1,4 +1,5 @@
 from .db import get_db
+from .user import User
 import logging
 
 class Equipment:
@@ -7,6 +8,7 @@ class Equipment:
         """
         取得所有設備記錄，可依據 category 過濾。
         支援 30 分鐘自動失效機制 (過期視為 available)。
+        聯結查詢最新有效回報之用戶資訊與同感驗證數。
         """
         try:
             conn = get_db()
@@ -19,20 +21,26 @@ class Equipment:
                     e.category, 
                     e.location,
                     e.created_at,
+                    s.id as last_log_id,
+                    s.reported_at as last_reported_at,
+                    s.reporter_session as last_reported_by_session,
+                    u.nickname as last_reported_by_nickname,
+                    u.points as last_reported_by_points,
                     CASE 
                         WHEN s.reported_at IS NULL THEN 'available'
                         WHEN (strftime('%s', 'now') - strftime('%s', s.reported_at)) > 1800 THEN 'available'
                         ELSE s.status
                     END as current_status,
-                    s.reported_at as last_reported_at
+                    (SELECT COUNT(*) FROM verifications v WHERE v.status_log_id = s.id) as verification_count
                 FROM equipment e
                 LEFT JOIN (
-                    SELECT equipment_id, status, reported_at
+                    SELECT id, equipment_id, status, reported_at, reporter_session
                     FROM status_logs
-                    WHERE id IN (
-                        SELECT MAX(id) FROM status_logs GROUP BY equipment_id
+                    WHERE is_valid = 1 AND id IN (
+                        SELECT MAX(id) FROM status_logs WHERE is_valid = 1 GROUP BY equipment_id
                     )
                 ) s ON e.id = s.equipment_id
+                LEFT JOIN users u ON s.reporter_session = u.session_id
             """
             
             params = []
@@ -44,7 +52,18 @@ class Equipment:
             
             cursor.execute(query, params)
             rows = cursor.fetchall()
-            return [dict(row) for row in rows]
+            
+            equipments = []
+            for row in rows:
+                eq = dict(row)
+                # 計算回報者的等級稱號
+                if eq['last_reported_by_points'] is not None:
+                    eq['last_reported_by_level_info'] = User.get_level_info(eq['last_reported_by_points'])
+                else:
+                    eq['last_reported_by_level_info'] = None
+                equipments.append(eq)
+                
+            return equipments
         except Exception as e:
             logging.error(f"Error in Equipment.get_all: {e}")
             return []
@@ -55,7 +74,7 @@ class Equipment:
     @staticmethod
     def get_by_id(equipment_id):
         """
-        取得單筆設備記錄，包含最新狀態。
+        取得單筆設備記錄，包含最新有效狀態、回報者與同感驗證數。
         """
         try:
             conn = get_db()
@@ -68,26 +87,39 @@ class Equipment:
                     e.category, 
                     e.location,
                     e.created_at,
+                    s.id as last_log_id,
+                    s.reported_at as last_reported_at,
+                    s.reporter_session as last_reported_by_session,
+                    u.nickname as last_reported_by_nickname,
+                    u.points as last_reported_by_points,
                     CASE 
                         WHEN s.reported_at IS NULL THEN 'available'
                         WHEN (strftime('%s', 'now') - strftime('%s', s.reported_at)) > 1800 THEN 'available'
                         ELSE s.status
                     END as current_status,
-                    s.reported_at as last_reported_at
+                    (SELECT COUNT(*) FROM verifications v WHERE v.status_log_id = s.id) as verification_count
                 FROM equipment e
                 LEFT JOIN (
-                    SELECT equipment_id, status, reported_at
+                    SELECT id, equipment_id, status, reported_at, reporter_session
                     FROM status_logs
-                    WHERE equipment_id = ?
+                    WHERE equipment_id = ? AND is_valid = 1
                     ORDER BY reported_at DESC
                     LIMIT 1
                 ) s ON e.id = s.equipment_id
+                LEFT JOIN users u ON s.reporter_session = u.session_id
                 WHERE e.id = ?
             """
             
             cursor.execute(query, (equipment_id, equipment_id))
             row = cursor.fetchone()
-            return dict(row) if row else None
+            if row:
+                eq = dict(row)
+                if eq['last_reported_by_points'] is not None:
+                    eq['last_reported_by_level_info'] = User.get_level_info(eq['last_reported_by_points'])
+                else:
+                    eq['last_reported_by_level_info'] = None
+                return eq
+            return None
         except Exception as e:
             logging.error(f"Error in Equipment.get_by_id: {e}")
             return None
