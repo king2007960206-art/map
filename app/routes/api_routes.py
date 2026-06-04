@@ -1,57 +1,159 @@
 from flask import Blueprint, request, jsonify, session
 import uuid
-from app.models.report import Report
+import datetime
 from app.models.location import Location
+from app.models.report import Report
+from app.models.prediction import PredictionEngine
+from app.models.db import get_db_connection
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 
 @api_bp.route('/locations', methods=['GET'])
-def get_locations():
+def get_locations_api():
+    """取得所有校園熱區位置與其當前預測狀態的 API"""
+    try:
+        locations = Location.get_all()
+        for loc in locations:
+            pred_data = PredictionEngine.predict_next_hour(loc['id'])
+            loc['current_crowd'] = pred_data['current_crowd']
+            loc['current_temp'] = pred_data['current_temp']
+            loc['has_alert'] = pred_data['has_alert']
+            loc['alert_message'] = pred_data['alert_message']
+        return jsonify(locations)
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"取得地點資料失敗: {e}"}), 500
+
+@api_bp.route('/predictions/<int:location_id>', methods=['GET'])
+def get_predictions_api(location_id):
     """
-    提供前端非同步獲取所有地點與最新狀態的 API。
+    取得特定地點的趨勢資料 (過去 3 小時的真實歷史紀錄 + 未來 1 小時的預測趨勢)
     """
-    locations = Location.get_all()
-    
-    # 針對每個 location，取得最新的回報狀態
-    for loc in locations:
-        recent = Report.get_recent_by_location(loc['id'], limit=1)
-        if recent:
-            loc['latest_tag'] = recent[0]['tag']
-            loc['latest_time'] = recent[0]['created_at']
-        else:
-            loc['latest_tag'] = None
-            loc['latest_time'] = None
+    try:
+        loc = Location.get_by_id(location_id)
+        if not loc:
+            return jsonify({"status": "error", "message": "找不到該地點"}), 404
             
-    return jsonify(locations)
+        pred_data = PredictionEngine.predict_next_hour(location_id)
+        
+        # 取得過去 3 小時的歷史數據
+        conn = get_db_connection()
+        three_hours_ago = (datetime.datetime.now() - datetime.timedelta(hours=3)).strftime('%Y-%m-%d %H:%M:%S')
+        history_rows = conn.execute(
+            '''SELECT timestamp, crowd_level, temperature 
+               FROM historical_data 
+               WHERE location_id = ? AND timestamp >= ? 
+               ORDER BY timestamp ASC''',
+            (location_id, three_hours_ago)
+        ).fetchall()
+        conn.close()
+        
+        history = []
+        for r in history_rows:
+            # 將 YYYY-MM-DD HH:MM:SS 轉成 HH:MM 格式方便前端圖表呈現
+            t_str = r['timestamp']
+            try:
+                dt = datetime.datetime.strptime(t_str, '%Y-%m-%d %H:%M:%S')
+                time_lbl = dt.strftime('%H:%M')
+            except:
+                time_lbl = t_str
+            history.append({
+                "time_str": time_lbl,
+                "crowd_level": r['crowd_level'],
+                "temperature": r['temperature']
+            })
+            
+        return jsonify({
+            "location": dict(loc),
+            "history": history,
+            "predictions": pred_data['predictions'],
+            "current_crowd": pred_data['current_crowd'],
+            "current_temp": pred_data['current_temp'],
+            "has_alert": pred_data['has_alert'],
+            "alert_message": pred_data['alert_message']
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"取得預測資料失敗: {e}"}), 500
 
 @api_bp.route('/report', methods=['POST'])
-def submit_report():
+def submit_report_api():
+    """處理使用者即時回報的 API"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"status": "error", "message": "無效的請求內容"}), 400
+            
+        location_id = data.get('location_id')
+        crowd_level = data.get('crowd_level') # 'low', 'medium', 'high'
+        temperature_felt = data.get('temperature_felt') # 'cold', 'comfort', 'hot'
+        
+        if not location_id:
+            return jsonify({"status": "error", "message": "請選擇回報地點"}), 400
+            
+        if not crowd_level and not temperature_felt:
+            return jsonify({"status": "error", "message": "請至少填寫一項回報項目"}), 400
+            
+        # 驗證輸入合法性
+        if crowd_level and crowd_level not in ['low', 'medium', 'high']:
+            return jsonify({"status": "error", "message": "不合法的人潮狀態"}), 400
+        if temperature_felt and temperature_felt not in ['cold', 'comfort', 'hot']:
+            return jsonify({"status": "error", "message": "不合法的溫度體感狀態"}), 400
+            
+        # 獲取或產生 user session 用以防刷
+        if 'user_session' not in session:
+            session['user_session'] = str(uuid.uuid4())
+        user_session = session['user_session']
+        
+        # 取得使用者 IP
+        user_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+        
+        # 防刷機制 (2 分鐘限制)
+        is_spam = Report.check_recent_user_report(location_id, user_session, minutes=2)
+        if is_spam:
+            return jsonify({"status": "error", "message": "您在 2 分鐘內已回報過此地點，請稍後再試。"}), 429
+            
+        # 儲存回報
+        new_id = Report.create(location_id, crowd_level, temperature_felt, user_ip, user_session)
+        if new_id:
+            return jsonify({"status": "success", "message": "回報成功！感謝您的即時互助回饋！"}), 200
+        else:
+            return jsonify({"status": "error", "message": "系統寫入失敗，請重試。"}), 500
+            
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"回報處理發生錯誤: {e}"}), 500
+
+@api_bp.route('/geoip', methods=['GET'])
+def geoip_api():
     """
-    處理前端送出的體感回報。
+    提供定位服務 API。
+    如果是 localhost (127.0.0.1/::1) 或未定位，且請求中帶有 simulate=true，
+    則模擬回傳在逢甲大學大樓附近的座標。
     """
-    data = request.get_json()
-    if not data:
-        return jsonify({"status": "error", "message": "無效的請求資料"}), 400
-        
-    location_id = data.get('location_id')
-    tag = data.get('tag')
+    simulate = request.args.get('simulate') == 'true'
     
-    if not location_id or not tag:
-        return jsonify({"status": "error", "message": "缺少必要的參數 (location_id, tag)"}), 400
+    if simulate:
+        # 模擬在圖書館與人言大樓之間
+        return jsonify({
+            "status": "success",
+            "lat": 24.1796,
+            "lon": 120.6486,
+            "source": "simulated"
+        })
         
-    # 獲取或產生使用者的 session 識別碼
-    if 'user_session' not in session:
-        session['user_session'] = str(uuid.uuid4())
-    user_session = session['user_session']
-    
-    # 檢查防刷機制（同一地點 5 分鐘內只能回報一次）
-    is_spam = Report.check_recent_user_report(location_id, user_session, minutes=5)
-    if is_spam:
-        return jsonify({"status": "error", "message": "您已在近期回報過此地點，請稍後再試"}), 429
+    # 一般情況下嘗試透過 IP 地理定位 API (使用 keyless API ip-api)
+    # 在前端發送請求往往比後端更精準，但在這裡也提供一個代理
+    # 若為本機，回傳無定位
+    user_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+    if user_ip in ['127.0.0.1', '::1', 'localhost']:
+        return jsonify({
+            "status": "fail",
+            "message": "Localhost IP Cannot geolocate",
+            "source": "local"
+        })
         
-    # 儲存回報進資料庫
-    new_id = Report.create(location_id, tag, user_session)
-    if new_id:
-        return jsonify({"status": "success", "message": "回報成功！感謝您的提供"}), 200
-    else:
-        return jsonify({"status": "error", "message": "伺服器發生錯誤，寫入失敗"}), 500
+    return jsonify({
+        "status": "success",
+        "ip": user_ip,
+        "lat": 24.179, # 預設 Taichung
+        "lon": 120.647,
+        "source": "default"
+    })

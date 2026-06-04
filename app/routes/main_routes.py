@@ -1,24 +1,34 @@
 from flask import Blueprint, render_template
 from app.models.location import Location
-from app.models.report import Report
+from app.models.prediction import PredictionEngine
 
 main_bp = Blueprint('main', __name__)
 
 @main_bp.route('/', methods=['GET'])
 def index():
-    """首頁：顯示所有地點與最新狀態"""
+    """首頁：校園人潮與溫度即時熱區預測看板"""
     locations = Location.get_all()
+    
+    # 獲取每個地點當前的預測數據與警報狀態
+    active_alerts = []
     for loc in locations:
-        recent = Report.get_recent_by_location(loc['id'], limit=1)
-        if recent:
-            loc['latest_tag'] = recent[0]['tag']
-            loc['latest_time'] = recent[0]['created_at']
-        else:
-            loc['latest_tag'] = None
-            loc['latest_time'] = None
+        pred_data = PredictionEngine.predict_next_hour(loc['id'])
+        loc['current_crowd'] = pred_data['current_crowd']
+        loc['current_temp'] = pred_data['current_temp']
+        loc['has_alert'] = pred_data['has_alert']
+        loc['alert_message'] = pred_data['alert_message']
+        
+        if pred_data['has_alert']:
+            active_alerts.append({
+                "location_id": loc['id'],
+                "location_name": loc['name'],
+                "message": pred_data['alert_message']
+            })
             
-    return render_template('index.html', locations=locations)
+    return render_template('index.html', locations=locations, active_alerts=active_alerts)
 
-@main_bp.route('/admin/dashboard', methods=['GET'])
+@main_bp.route('/dashboard', methods=['GET'])
 def dashboard():
-    return render_template('base.html') # 暫時回傳 base
+    """歷史數據分析與長期趨勢看版"""
+    locations = Location.get_all()
+    return render_template('dashboard.html', locations=locations)

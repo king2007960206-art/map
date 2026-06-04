@@ -8,33 +8,23 @@ CREATE TABLE IF NOT EXISTS locations (
 CREATE TABLE IF NOT EXISTS reports (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     location_id INTEGER NOT NULL,
-    tag TEXT NOT NULL,
-    user_session TEXT NOT NULL,
+    crowd_level TEXT CHECK(crowd_level IN ('low', 'medium', 'high')),
+    temperature_felt TEXT CHECK(temperature_felt IN ('cold', 'comfort', 'hot')),
+    user_ip TEXT,
+    user_session TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (location_id) REFERENCES locations (id) ON DELETE CASCADE
+    FOREIGN KEY(location_id) REFERENCES locations(id) ON DELETE CASCADE
 );
--- database/schema.sql
 
--- 開啟 Foreign Key 支援 (SQLite 預設是關閉的，視需要在連線時開啟，但在這裡也確保關聯定義正確)
-PRAGMA foreign_keys = ON;
-
--- 建立設備資料表
-CREATE TABLE IF NOT EXISTS equipment (
+CREATE TABLE IF NOT EXISTS historical_data (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    category TEXT NOT NULL,
-    location TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    location_id INTEGER NOT NULL,
+    timestamp DATETIME NOT NULL,
+    crowd_level INTEGER NOT NULL, -- 0 to 100
+    temperature REAL NOT NULL, -- in degrees Celsius
+    FOREIGN KEY(location_id) REFERENCES locations(id) ON DELETE CASCADE
 );
 
--- 建立狀態紀錄表
-CREATE TABLE IF NOT EXISTS status_logs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    equipment_id INTEGER NOT NULL,
-    status TEXT NOT NULL CHECK(status IN ('available', 'queuing', 'maintenance')),
-    reported_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(equipment_id) REFERENCES equipment(id) ON DELETE CASCADE
-);
-
--- (可選) 建立索引以加速查詢最新狀態
-CREATE INDEX IF NOT EXISTS idx_status_logs_equipment_time ON status_logs(equipment_id, reported_at DESC);
+-- Index for querying recent reports and historical data faster
+CREATE INDEX IF NOT EXISTS idx_reports_location_time ON reports(location_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_historical_location_time ON historical_data(location_id, timestamp DESC);
