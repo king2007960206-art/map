@@ -446,10 +446,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         btn.classList.remove('active', 'btn-active-success', 'btn-active-warning', 'btn-active-danger', 'btn-active-info');
                     });
                     
-                    // Reload predictions after delay
+                    // 即時更新個人貢獻卡片
+                    if (data.profile) {
+                        document.getElementById('profile-points').innerText = data.profile.points;
+                        document.getElementById('profile-reports-count').innerText = data.profile.reports_count;
+                        document.getElementById('profile-level').innerText = data.profile.level_name;
+                        updateLevelProgressBar(data.profile.points);
+                    }
+                    
+                    // Reload predictions and leaderboard after delay
                     setTimeout(() => {
                         resultMsg.innerHTML = "";
-                        selectLocation(parseInt(locationId));
+                        window.location.reload();
                     }, 1500);
                 } else {
                     resultMsg.innerHTML = `<span class="text-danger fw-bold"><i class="bi bi-exclamation-triangle-fill me-1"></i> ${data.message}</span>`;
@@ -522,6 +530,125 @@ document.addEventListener('DOMContentLoaded', () => {
                 const descElem = document.getElementById('weather-desc');
                 if (descElem) descElem.innerText = "無法載入即時天氣";
             });
+    }
+
+    // --- Level Progress Bar Logic ---
+    function updateLevelProgressBar(points) {
+        const descEl = document.getElementById('progress-desc');
+        const valEl = document.getElementById('progress-val');
+        const barEl = document.getElementById('progress-bar');
+        if (!descEl || !valEl || !barEl) return;
+        
+        let currentLevelMin = 0;
+        let nextLevelMax = 50;
+        let nextLevelName = "校園探索者";
+        let isMax = false;
+        
+        if (points < 50) {
+            currentLevelMin = 0;
+            nextLevelMax = 50;
+            nextLevelName = "校園探索者";
+        } else if (points < 150) {
+            currentLevelMin = 50;
+            nextLevelMax = 150;
+            nextLevelName = "空間巡邏員";
+        } else if (points < 300) {
+            currentLevelMin = 150;
+            nextLevelMax = 300;
+            nextLevelName = "校園守護者";
+        } else {
+            isMax = true;
+        }
+        
+        if (isMax) {
+            descEl.innerText = "已達到最高等級！";
+            valEl.innerText = `${points} 分`;
+            barEl.style.width = '100%';
+            barEl.className = 'progress-bar bg-warning progress-bar-striped progress-bar-animated';
+        } else {
+            const progressRange = nextLevelMax - currentLevelMin;
+            const earnedInRange = points - currentLevelMin;
+            const percentage = Math.max(0, Math.min(100, (earnedInRange / progressRange) * 100));
+            
+            descEl.innerText = `距離下一等級「${nextLevelName}」`;
+            valEl.innerText = `${points} / ${nextLevelMax} 分`;
+            barEl.style.width = `${percentage}%`;
+            barEl.className = 'progress-bar bg-info progress-bar-striped progress-bar-animated';
+        }
+    }
+
+    // Initialize progress bar
+    const initialPointsEl = document.getElementById('profile-points');
+    if (initialPointsEl) {
+        const initialPoints = parseInt(initialPointsEl.innerText) || 0;
+        updateLevelProgressBar(initialPoints);
+    }
+
+    // --- Nickname Editing ---
+    const btnEditNickname = document.getElementById('btn-edit-nickname');
+    const btnCancelNickname = document.getElementById('btn-cancel-nickname');
+    const btnSaveNickname = document.getElementById('btn-save-nickname');
+    const nicknameEditBox = document.getElementById('nickname-edit-box');
+    const profileNickname = document.getElementById('profile-nickname');
+    const inputNickname = document.getElementById('input-nickname');
+
+    if (btnEditNickname && nicknameEditBox && profileNickname && inputNickname) {
+        btnEditNickname.addEventListener('click', () => {
+            profileNickname.classList.add('d-none');
+            btnEditNickname.classList.add('d-none');
+            nicknameEditBox.classList.remove('d-none');
+            inputNickname.focus();
+        });
+
+        btnCancelNickname.addEventListener('click', () => {
+            profileNickname.classList.remove('d-none');
+            btnEditNickname.classList.remove('d-none');
+            nicknameEditBox.classList.add('d-none');
+            inputNickname.value = profileNickname.innerText;
+        });
+
+        btnSaveNickname.addEventListener('click', () => {
+            const newName = inputNickname.value.trim();
+            if (!newName) {
+                alert('暱稱不得為空！');
+                return;
+            }
+
+            btnSaveNickname.setAttribute('disabled', 'true');
+            fetch('/api/user/nickname', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ nickname: newName })
+            })
+            .then(res => res.json())
+            .then(data => {
+                btnSaveNickname.removeAttribute('disabled');
+                if (data.status === 'success') {
+                    profileNickname.innerText = data.profile.nickname;
+                    document.getElementById('profile-level').innerText = data.profile.level_name;
+                    document.getElementById('profile-points').innerText = data.profile.points;
+                    document.getElementById('profile-reports-count').innerText = data.profile.reports_count;
+                    
+                    profileNickname.classList.remove('d-none');
+                    btnEditNickname.classList.remove('d-none');
+                    nicknameEditBox.classList.add('d-none');
+                    
+                    // Reload the page after a brief moment to refresh leaderboard
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 500);
+                } else {
+                    alert('更名失敗: ' + data.message);
+                }
+            })
+            .catch(err => {
+                btnSaveNickname.removeAttribute('disabled');
+                console.error("更新暱稱錯誤", err);
+                alert('網路連線失敗');
+            });
+        });
     }
 
     // Fetch weather immediately

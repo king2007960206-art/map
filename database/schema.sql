@@ -12,8 +12,18 @@ CREATE TABLE IF NOT EXISTS reports (
     temperature_felt TEXT CHECK(temperature_felt IN ('cold', 'comfort', 'hot')),
     user_ip TEXT,
     user_session TEXT,
+    is_abnormal INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(location_id) REFERENCES locations(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS user_profiles (
+    session_id TEXT PRIMARY KEY,
+    nickname TEXT NOT NULL,
+    points INTEGER DEFAULT 0,
+    level_name TEXT DEFAULT '校園初學者',
+    reports_count INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS historical_data (

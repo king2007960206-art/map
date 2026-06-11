@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col-md-8">
+        <h2 class="text-white fw-bold mb-1">
+            <i class="bi bi-shield-lock-fill text-info me-2"></i>回報數據審查面版
+        </h2>
+        <p class="text-muted mb-0">管理員可在此過濾異常或惡意洗版數據，維護即時體感地圖之真實與準確度。</p>
+    </div>
+    <div class="col-md-4 text-md-end mt-3 mt-md-0">
+        <span class="badge bg-dark border border-secondary text-light p-2">
+            <i class="bi bi-info-circle text-info me-1"></i> 標記為異常將扣除該用戶 20 積分，並不納入預測計算
+        </span>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="table-container bg-dark bg-opacity-40 p-4 rounded-4 border border-secondary border-opacity-10 text-white">
+            <table class="table table-dark table-hover table-borderless align-middle mb-0" id="reports-table">
+                <thead>
+                    <tr class="border-bottom border-secondary border-opacity-20 text-muted">
+                        <th>回報時間</th>
+                        <th>回報地點</th>
+                        <th>人潮狀態</th>
+                        <th>溫度體感</th>
+                        <th>使用者標識 / IP</th>
+                        <th>狀態</th>
+                        <th class="text-end">管理操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for report in reports %}
+                    <tr id="report-row-{{ report.id }}" class="{% if report.is_abnormal == 1 %}table-danger-custom text-decoration-line-through text-muted{% endif %} border-bottom border-secondary border-opacity-10">
+                        <td class="font-monospace">{{ report.created_at }}</td>
+                        <td class="fw-bold">{{ report.location_name }}</td>
+                        <td>
+                            {% if report.crowd_level == 'low' %}
+                                <span class="badge bg-success bg-opacity-25 text-success border border-success-subtle">🈳 空曠</span>
+                            {% elif report.crowd_level == 'medium' %}
+                                <span class="badge bg-warning bg-opacity-25 text-warning border border-warning-subtle text-dark">🚶 適中</span>
+                            {% elif report.crowd_level == 'high' %}
+                                <span class="badge bg-danger bg-opacity-25 text-danger border border-danger-subtle">🈵 擁擠</span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if report.temperature_felt == 'cold' %}
+                                <span class="badge bg-info bg-opacity-25 text-info border border-info-subtle">🥶 偏冷</span>
+                            {% elif report.temperature_felt == 'comfort' %}
+                                <span class="badge bg-success bg-opacity-25 text-success border border-success-subtle">😊 舒適</span>
+                            {% elif report.temperature_felt == 'hot' %}
+                                <span class="badge bg-danger bg-opacity-25 text-danger border border-danger-subtle">🥵 悶熱</span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="small font-monospace text-muted d-block">Session: {{ report.user_session[:8] }}...</span>
+                            <span class="small font-monospace text-muted">IP: {{ report.user_ip }}</span>
+                        </td>
+                        <td>
+                            {% if report.is_abnormal == 1 %}
+                                <span class="badge bg-danger border border-danger" id="status-badge-{{ report.id }}">異常封鎖</span>
+                            {% else %}
+                                <span class="badge bg-success border border-success" id="status-badge-{{ report.id }}">正常納入</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-danger btn-action-abnormal {% if report.is_abnormal == 1 %}d-none{% endif %}" 
+                                    onclick="toggleReportStatus({{ report.id }}, 'abnormal')" id="btn-abnormal-{{ report.id }}">
+                                <i class="bi bi-x-circle me-1"></i>標記異常
+                            </button>
+                            <button class="btn btn-sm btn-outline-success btn-action-normal {% if report.is_abnormal == 0 %}d-none{% endif %}" 
+                                    onclick="toggleReportStatus({{ report.id }}, 'normal')" id="btn-normal-{{ report.id }}">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i>還原正常
+                            </button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="bi bi-clipboard-x fs-2 mb-3 d-block"></i>
+                            目前尚無任何回報資料。
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Admin Notification Toast -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="adminToast" class="toast align-items-center text-white bg-info border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body" id="toast-body-text">
+                動作已執行
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .table-danger-custom {
+        background-color: rgba(220, 53, 69, 0.08) !important;
+        opacity: 0.65;
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const toast = new bootstrap.Toast(document.getElementById('adminToast'));
+    const toastText = document.getElementById('toast-body-text');
+
+    function toggleReportStatus(reportId, action) {
+        const url = `/api/admin/reports/${reportId}/${action}`;
+        
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Update UI state
+                const row = document.getElementById(`report-row-${reportId}`);
+                const badge = document.getElementById(`status-badge-${reportId}`);
+                const btnAbnormal = document.getElementById(`btn-abnormal-${reportId}`);
+                const btnNormal = document.getElementById(`btn-normal-${reportId}`);
+                
+                if (action === 'abnormal') {
+                    row.classList.add('table-danger-custom', 'text-decoration-line-through', 'text-muted');
+                    badge.className = 'badge bg-danger border border-danger';
+                    badge.innerText = '異常封鎖';
+                    btnAbnormal.classList.add('d-none');
+                    btnNormal.classList.remove('d-none');
+                    toastText.innerText = `成功：標記為異常 (該用戶積分 -20)`;
+                } else {
+                    row.classList.remove('table-danger-custom', 'text-decoration-line-through', 'text-muted');
+                    badge.className = 'badge bg-success border border-success';
+                    badge.innerText = '正常納入';
+                    btnAbnormal.classList.remove('d-none');
+                    btnNormal.classList.add('d-none');
+                    toastText.innerText = `成功：恢復為正常資料且補回積分`;
+                }
+                
+                toast.show();
+            } else {
+                alert('操作失敗: ' + data.message);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('連線伺服器發生錯誤。');
+        });
+    }
+</script>
+{% endblock %}

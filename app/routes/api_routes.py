@@ -114,7 +114,13 @@ def submit_report_api():
         # 儲存回報
         new_id = Report.create(location_id, crowd_level, temperature_felt, user_ip, user_session)
         if new_id:
-            return jsonify({"status": "success", "message": "回報成功！感謝您的即時互助回饋！"}), 200
+            from app.models.user import UserProfile
+            profile = UserProfile.get_or_create(user_session)
+            return jsonify({
+                "status": "success", 
+                "message": "回報成功！感謝您的即時互助回饋！",
+                "profile": profile
+            }), 200
         else:
             return jsonify({"status": "error", "message": "系統寫入失敗，請重試。"}), 500
             
@@ -157,3 +163,58 @@ def geoip_api():
         "lon": 120.647,
         "source": "default"
     })
+
+@api_bp.route('/user/nickname', methods=['POST'])
+def update_nickname_api():
+    """更新目前用戶暱稱的 API"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"status": "error", "message": "無效的請求"}), 400
+            
+        nickname = data.get('nickname')
+        if not nickname or not nickname.strip():
+            return jsonify({"status": "error", "message": "暱稱不得為空"}), 400
+            
+        if len(nickname) > 15:
+            return jsonify({"status": "error", "message": "暱稱長度不能超過 15 個字"}), 400
+            
+        if 'user_session' not in session:
+            session['user_session'] = str(uuid.uuid4())
+        user_session = session['user_session']
+        
+        from app.models.user import UserProfile
+        success = UserProfile.update_nickname(user_session, nickname)
+        
+        if success:
+            profile = UserProfile.get_or_create(user_session)
+            return jsonify({"status": "success", "message": "暱稱更新成功！", "profile": profile}), 200
+        else:
+            return jsonify({"status": "error", "message": "暱稱更新失敗"}), 500
+            
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"更新暱稱發生錯誤: {e}"}), 500
+
+@api_bp.route('/admin/reports/<int:report_id>/abnormal', methods=['POST'])
+def mark_abnormal_api(report_id):
+    """將某一筆回報標記為異常的 API"""
+    try:
+        success = Report.mark_as_abnormal(report_id)
+        if success:
+            return jsonify({"status": "success", "message": "已成功將該回報標記為異常，排除計算並扣除該用戶 20 積分。"}), 200
+        else:
+            return jsonify({"status": "error", "message": "標記異常失敗，或找不到該筆紀錄"}), 500
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"系統處理錯誤: {e}"}), 500
+
+@api_bp.route('/admin/reports/<int:report_id>/normal', methods=['POST'])
+def mark_normal_api(report_id):
+    """將某一筆異常回報恢復為正常的 API"""
+    try:
+        success = Report.mark_as_normal(report_id)
+        if success:
+            return jsonify({"status": "success", "message": "已成功將該回報恢復為正常，重新納入計算並還原該用戶積分。"}), 200
+        else:
+            return jsonify({"status": "error", "message": "恢復正常失敗，或找不到該筆紀錄"}), 500
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"系統處理錯誤: {e}"}), 500
