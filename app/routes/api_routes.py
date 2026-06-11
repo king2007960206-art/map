@@ -164,6 +164,61 @@ def geoip_api():
         "source": "default"
     })
 
+@api_bp.route('/heatscape', methods=['GET'])
+def get_heatscape_api():
+    """
+    取得所有地點的雙維度體感地景資料。
+    回傳：擁擠度 (crowd)、溫度 (temp)、溫度體感 (temp_feel)、
+         複合熱度分數 (heat_score)、熱力圖強度 (heat_intensity)
+    """
+    try:
+        locations = Location.get_all()
+        result = []
+        for loc in locations:
+            pred_data = PredictionEngine.predict_next_hour(loc['id'])
+            crowd = pred_data['current_crowd']
+            temp = pred_data['current_temp']
+
+            # 計算溫度體感分類
+            if temp <= 22:
+                temp_feel = 'cold'
+                temp_label = '偏冷'
+            elif temp >= 27:
+                temp_feel = 'hot'
+                temp_label = '悶熱'
+            else:
+                temp_feel = 'comfort'
+                temp_label = '舒適'
+
+            # 計算複合熱度分數 (0~100)
+            # 人潮佔 70%，溫度佔 30%
+            # 溫度分數：冷=低，熱=高 (15~35°C 映射到 0~100)
+            temp_score = max(0, min(100, (temp - 15) / 20 * 100))
+            heat_score = round(crowd * 0.7 + temp_score * 0.3, 1)
+
+            # 熱力圖強度 (0.0~1.0)
+            heat_intensity = round(heat_score / 100, 3)
+
+            result.append({
+                'id': loc['id'],
+                'name': loc['name'],
+                'latitude': loc['latitude'],
+                'longitude': loc['longitude'],
+                'crowd': round(crowd, 1),
+                'temp': round(temp, 1),
+                'temp_feel': temp_feel,
+                'temp_label': temp_label,
+                'heat_score': heat_score,
+                'heat_intensity': heat_intensity,
+                'has_alert': pred_data['has_alert'],
+                'alert_message': pred_data['alert_message']
+            })
+
+        return jsonify({'status': 'success', 'data': result})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'體感地景資料取得失敗: {e}'}), 500
+
+
 @api_bp.route('/user/nickname', methods=['POST'])
 def update_nickname_api():
     """更新目前用戶暱稱的 API"""

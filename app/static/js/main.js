@@ -653,4 +653,245 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Fetch weather immediately
     fetchLiveWeather();
-});
+
+    // =============================================
+    // 互動式體感地景 (Sensory Heatscape) Module
+    // =============================================
+    const HeatscapeLayer = (() => {
+        let heatLayer = null;           // leaflet.heat layer
+        let circleMarkers = [];         // dual-dimension circle markers
+        let isActive = false;
+        let refreshTimer = null;
+        const REFRESH_INTERVAL = 30000; // 30 seconds
+
+        // Temperature feel → border color mapping
+        const tempColors = {
+            cold:    '#00d2ff',  // 冰藍：偏冷
+            comfort: '#00ff99',  // 翠綠：舒適
+            hot:     '#ff6b35'   // 橘紅：悶熱
+        };
+
+        // Crowd level → fill color + opacity mapping
+        function getCrowdStyle(crowd) {
+            if (crowd >= 70) {
+                return { fillColor: '#ff3c3c', fillOpacity: 0.55, radius: 55 };
+            } else if (crowd >= 40) {
+                return { fillColor: '#ffc800', fillOpacity: 0.45, radius: 38 };
+            } else {
+                return { fillColor: '#00c864', fillOpacity: 0.38, radius: 24 };
+            }
+        }
+
+        function buildHeatPoints(data) {
+            // Each point: [lat, lng, intensity]
+            // We spread multiple sub-points around the location for a softer heatmap blob
+            const points = [];
+            data.forEach(loc => {
+                const intensity = loc.heat_intensity;
+                const spread = 0.0004; // roughly ~44m radius
+                const subPoints = 8;
+                for (let i = 0; i < subPoints; i++) {
+                    const angle = (i / subPoints) * Math.PI * 2;
+                    const r = spread * (0.5 + Math.random() * 0.5);
+                    points.push([
+                        loc.latitude  + r * Math.sin(angle),
+                        loc.longitude + r * Math.cos(angle),
+                        intensity * 0.6
+                    ]);
+                }
+                // Center point with full intensity
+                points.push([loc.latitude, loc.longitude, intensity]);
+            });
+            return points;
+        }
+
+        function clearLayers() {
+            if (heatLayer && map) {
+                map.removeLayer(heatLayer);
+                heatLayer = null;
+            }
+            circleMarkers.forEach(m => {
+                if (map) map.removeLayer(m);
+            });
+            circleMarkers = [];
+        }
+
+        function renderHeatscape(data) {
+            if (!map) return;
+            clearLayers();
+
+            // 1. Leaflet.heat background layer
+            if (typeof L.heatLayer !== 'undefined') {
+                const heatPoints = buildHeatPoints(data);
+                heatLayer = L.heatLayer(heatPoints, {
+                    radius:    45,
+                    blur:      30,
+                    maxZoom:   18,
+                    max:       1.0,
+                    gradient: {
+                        0.0:  '#0d47a1',
+                        0.25: '#00c864',
+                        0.5:  '#ffc800',
+                        0.75: '#ff6b35',
+                        1.0:  '#ff1744'
+                    }
+                });
+                heatLayer.addTo(map);
+            }
+
+            // 2. Dual-dimension CircleMarkers on top
+            data.forEach(loc => {
+                const style = getCrowdStyle(loc.crowd);
+                const borderColor = tempColors[loc.temp_feel] || '#00ff99';
+
+                // Outer ring (temperature dimension)
+                const outerRing = L.circleMarker(
+                    [loc.latitude, loc.longitude],
+                    {
+                        radius:      style.radius + 6,
+                        color:       borderColor,
+                        weight:      3,
+                        opacity:     0.9,
+                        fillColor:   'transparent',
+                        fillOpacity: 0,
+                        className:   'heatscape-ring'
+                    }
+                );
+
+                // Inner fill (crowd dimension)
+                const innerFill = L.circleMarker(
+                    [loc.latitude, loc.longitude],
+                    {
+                        radius:      style.radius,
+                        color:       borderColor,
+                        weight:      1.5,
+                        opacity:     0.6,
+                        fillColor:   style.fillColor,
+                        fillOpacity: style.fillOpacity,
+                        className:   'heatscape-fill'
+                    }
+                );
+
+                // Tooltip content
+                const crowdLabel = loc.crowd >= 70 ? '🈵 擁擠' : loc.crowd >= 40 ? '🚶 適中' : '🈳 空曠';
+                const tempEmoji = loc.temp_feel === 'cold' ? '🥶' : loc.temp_feel === 'hot' ? '🥵' : '😊';
+                const alertBadge = loc.has_alert
+                    ? `<div style="color:#ff6b35;font-size:0.7rem;margin-top:4px;">⚠ ${loc.alert_message}</div>`
+                    : '';
+
+                const tooltipHtml = `
+                    <div class="heatscape-tooltip">
+                        <div style="font-weight:700;font-size:0.85rem;color:#fff;margin-bottom:6px;">${loc.name}</div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+                            <div>
+                                <div style="font-size:0.65rem;color:#8b949e;">擁擠度</div>
+                                <div style="font-weight:600;color:#c9d1d9;">${crowdLabel} (${loc.crowd}%)</div>
+                            </div>
+                            <div>
+                                <div style="font-size:0.65rem;color:#8b949e;">冷氣/溫度</div>
+                                <div style="font-weight:600;color:${borderColor};">${tempEmoji} ${loc.temp_label} ${loc.temp}°C</div>
+                            </div>
+                        </div>
+                        <div style="margin-top:5px;font-size:0.68rem;color:#8b949e;">
+                            綜合熱度：<span style="color:#ffc800;font-weight:700;">${loc.heat_score}</span>
+                        </div>
+                        ${alertBadge}
+                    </div>
+                `;
+
+                [outerRing, innerFill].forEach(marker => {
+                    marker.bindTooltip(tooltipHtml, {
+                        permanent:   false,
+                        sticky:      true,
+                        direction:   'top',
+                        offset:      [0, -10],
+                        opacity:     1,
+                        className:   ''
+                    });
+
+                    // Click also selects location
+                    marker.on('click', () => {
+                        selectLocation(loc.id);
+                    });
+
+                    marker.addTo(map);
+                    circleMarkers.push(marker);
+                });
+            });
+        }
+
+        function fetchAndRender() {
+            const loadingEl = document.getElementById('heatscape-loading');
+            if (loadingEl) loadingEl.classList.remove('d-none');
+
+            fetch('/api/heatscape')
+                .then(res => res.json())
+                .then(json => {
+                    if (loadingEl) loadingEl.classList.add('d-none');
+                    if (json.status === 'success') {
+                        renderHeatscape(json.data);
+                    }
+                })
+                .catch(err => {
+                    if (loadingEl) loadingEl.classList.add('d-none');
+                    console.error('體感地景載入失敗', err);
+                });
+        }
+
+        function activate() {
+            isActive = true;
+            fetchAndRender();
+            refreshTimer = setInterval(fetchAndRender, REFRESH_INTERVAL);
+
+            // Show legend
+            const legend = document.getElementById('heatscape-legend');
+            if (legend) legend.classList.remove('d-none');
+
+            // Update button states
+            document.getElementById('btn-mode-standard')?.classList.remove('active', 'btn-info');
+            document.getElementById('btn-mode-standard')?.classList.add('btn-outline-info');
+            document.getElementById('btn-mode-heatscape')?.classList.remove('btn-outline-info');
+            document.getElementById('btn-mode-heatscape')?.classList.add('active', 'btn-info');
+        }
+
+        function deactivate() {
+            isActive = false;
+            if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
+            clearLayers();
+
+            // Hide legend
+            const legend = document.getElementById('heatscape-legend');
+            if (legend) legend.classList.add('d-none');
+            const loading = document.getElementById('heatscape-loading');
+            if (loading) loading.classList.add('d-none');
+
+            // Update button states
+            document.getElementById('btn-mode-heatscape')?.classList.remove('active', 'btn-info');
+            document.getElementById('btn-mode-heatscape')?.classList.add('btn-outline-info');
+            document.getElementById('btn-mode-standard')?.classList.remove('btn-outline-info');
+            document.getElementById('btn-mode-standard')?.classList.add('active', 'btn-info');
+        }
+
+        function toggle() {
+            if (isActive) deactivate(); else activate();
+        }
+
+        return { activate, deactivate, toggle, isActive: () => isActive };
+    })();
+
+    // Wire up mode toggle buttons
+    const btnStandard   = document.getElementById('btn-mode-standard');
+    const btnHeatscape  = document.getElementById('btn-mode-heatscape');
+
+    if (btnStandard) {
+        btnStandard.addEventListener('click', () => {
+            if (HeatscapeLayer.isActive()) HeatscapeLayer.deactivate();
+        });
+    }
+    if (btnHeatscape) {
+        btnHeatscape.addEventListener('click', () => {
+            if (!HeatscapeLayer.isActive()) HeatscapeLayer.activate();
+        });
+    }
+
+}); // end DOMContentLoaded

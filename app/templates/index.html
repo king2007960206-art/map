@@ -51,17 +51,84 @@
     <!-- Left: Leaflet Map Panel -->
     <div class="col-xl-7 col-lg-6 mb-4">
         <div class="card-custom h-100 overflow-hidden">
-            <div class="card-header bg-dark bg-opacity-50 d-flex justify-content-between align-items-center py-3">
-                <h5 class="m-0 text-white fw-bold"><i class="bi bi-map-fill text-info me-2"></i>逢甲大學 2D 熱區地圖</h5>
-                <div class="d-flex gap-2">
+            <div class="card-header bg-dark bg-opacity-50 d-flex justify-content-between align-items-center py-3 flex-wrap gap-2">
+                <h5 class="m-0 text-white fw-bold"><i class="bi bi-map-fill text-info me-2"></i>逢甲大學 校園熱區地圖</h5>
+                <div class="d-flex gap-2 align-items-center flex-wrap">
+                    <!-- Map mode toggle -->
+                    <div class="btn-group btn-group-sm" role="group" id="map-mode-toggle">
+                        <button type="button" class="btn btn-info active" id="btn-mode-standard" title="標準地圖模式">
+                            <i class="bi bi-map me-1"></i>標準
+                        </button>
+                        <button type="button" class="btn btn-outline-info" id="btn-mode-heatscape" title="體感地景模式">
+                            <i class="bi bi-fire me-1"></i>體感地景
+                        </button>
+                    </div>
                     <span class="badge bg-success rounded-pill px-2 py-1 fs-9">空曠 &lt;40%</span>
                     <span class="badge bg-warning text-dark rounded-pill px-2 py-1 fs-9">適中 40-70%</span>
                     <span class="badge bg-danger rounded-pill px-2 py-1 fs-9">擁擠 &gt;70%</span>
                 </div>
             </div>
-            <div class="card-body p-0 relative">
+            <div class="card-body p-0 position-relative">
                 <!-- Map Container -->
                 <div id="map" class="map-container" style="height: 550px; width: 100%;"></div>
+
+                <!-- Heatscape Legend Overlay (hidden by default) -->
+                <div id="heatscape-legend" class="heatscape-legend d-none">
+                    <div class="heatscape-legend-title">
+                        <i class="bi bi-layers-half me-1 text-info"></i>
+                        <span>體感地景圖例</span>
+                    </div>
+                    <!-- Crowd dimension -->
+                    <div class="legend-section mb-2">
+                        <div class="legend-dim-label">擁擠度 (圓圈大小 + 顏色)</div>
+                        <div class="d-flex gap-2 mt-1 flex-wrap">
+                            <div class="legend-item">
+                                <span class="legend-dot" style="width:10px;height:10px;background:rgba(0,200,100,0.7);border:2px solid #00c864;"></span>
+                                <span>空曠</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-dot" style="width:16px;height:16px;background:rgba(255,200,0,0.7);border:2px solid #ffc800;"></span>
+                                <span>適中</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-dot" style="width:22px;height:22px;background:rgba(255,60,60,0.7);border:2px solid #ff3c3c;"></span>
+                                <span>擁擠</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Temp dimension -->
+                    <div class="legend-section">
+                        <div class="legend-dim-label">冷氣強度 (外環顏色)</div>
+                        <div class="d-flex gap-2 mt-1 flex-wrap">
+                            <div class="legend-item">
+                                <span class="legend-ring" style="border-color:#00d2ff;"></span>
+                                <span>🥶 偏冷</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-ring" style="border-color:#00ff99;"></span>
+                                <span>😊 舒適</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-ring" style="border-color:#ff6b35;"></span>
+                                <span>🥵 悶熱</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Heat intensity gradient bar -->
+                    <div class="legend-section mt-2">
+                        <div class="legend-dim-label">綜合熱度層</div>
+                        <div class="legend-gradient-bar mt-1"></div>
+                        <div class="d-flex justify-content-between" style="font-size:9px;color:#8b949e;">
+                            <span>清涼</span><span>舒適</span><span>炎熱</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loading indicator for heatscape -->
+                <div id="heatscape-loading" class="heatscape-loading d-none">
+                    <div class="spinner-border spinner-border-sm text-info me-2" role="status"></div>
+                    <span class="text-info small">載入體感地景中...</span>
+                </div>
             </div>
         </div>
     </div>
